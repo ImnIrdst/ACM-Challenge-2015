@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="GoldHunterClient">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/Java/JavaSampleClient/GoldHunterClient.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
