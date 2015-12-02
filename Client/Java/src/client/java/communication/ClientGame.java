@@ -132,7 +132,7 @@ public abstract class ClientGame {
     
     
     /**
-     * @definition this method add new cells visited to client grid!
+     * @definition this method add new cells visited to client board!
      * @param cells
      */
     protected final void addCellsVisitedToBoard(ArrayList<Cell> cells) {

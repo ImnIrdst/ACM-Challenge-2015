@@ -7,7 +7,7 @@ import common.player.Player;
 import common.team.Team;
 
 /**
- * This class represents cell of the grid.
+ * This class represents cell of the board.
  */
 public class Cell {
 

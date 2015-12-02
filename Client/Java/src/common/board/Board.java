@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import common.player.Player;
 
 /**
- * This class represents grid of the game.
+ * This class represents board of the game.
  */
 public class Board {
 
@@ -17,7 +17,7 @@ public class Board {
     private ArrayList<Gold> golds = new ArrayList<Gold>();
 
     /**
-     * This method create grid from text file!
+     * This method create board from text file!
      */
     public Board() {
     }
@@ -54,7 +54,7 @@ public class Board {
     }
     
     /**
-     * @definition this method check the cell is in grid. rowNumber and
+     * @definition this method check the cell is in board. rowNumber and
      * colNumber
      * @param rowNumber
      * @param colNumber

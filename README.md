@@ -8,35 +8,47 @@
 
 # Ideas
 ## Code Multiple Clients
-    - For Diffrent Strategies Keep Diffrent Clients Compete Them With Each Other and Compare Them.
-    - Use git branches and then keep they in jar files.
+* For Diffrent Strategies Keep Diffrent Clients Compete Them With Each Other and Compare Them.
+* Use git branches and then keep they in jar files.
+
+## Use Sorushes Wings Idea
+* Go Ahead Until
+
+## Use Tangents Theory
+* Mark Blind Points
 
 ## BFS From Golds and Enemies
-    - We Can Run a BFS from Golds and Keep it in a table to send our Miners To There.
-    - We Can Run a BFS from Enemy Miners (or Players) and send our Hunters There.
+* We Can Run a BFS from Golds and Keep it in a table to send our Miners To There.
+* We Can Run a BFS from Enemy Miners (or Players) and send our Hunters There.
 
 ## Diffrent Policies for Navigation
-    - Set Score for each cell (use constants)
+* Set Score for each cell (use constants)
+* Don't go in a single direction too long (if Enemy is not behind you scape Bullets easly)
 
 
 ## Diffrent Policies for Sending Hunters
-    - Send two hunters with each other and use them for side attacks.
-    - Send Hunters to kill other Miners (and Hunters).
-    - Send Hunters to protect Minters.
-    - Fire low amount of arrows.
+* Send two hunters with each other and use them for side attacks.
+* Send Hunters to kill other Miners (and Hunters).
+* Send Hunters to protect Minters.
+* Fire low amount of arrows.
 
 ## Policies for each target (gold or hunt)
-    - have diffrent grids per diffrent types of target.
-    - send one miner per gold and two hunters per hunt.
+* have diffrent grids per diffrent types of target.
+* send one miner per gold and two hunters per hunt.
 
 ## Policies for Spies
-    - send spies for undetected cells.
-    - in very first rounds send spies unhidden after he sees an enemy (or after a constant period). hide him after he discovers all the map.
+* send spies for undetected cells.
+* in very first rounds send spies unhidden after he sees an enemy (or after a constant period). hide him after he discovers all the map.
 
 # Todos
-    01 Rename TiZii Files. (Move TiZii suffix to prefix)
-    02 Comment Codes (add todos)
-    03 Code Spy Logic
+06. fix the probelm with enemyInfo.
+07. Code Miner Logic (BFS)
+09. Code Hunter Logic (go Hunt)
 
 # Done
-    00 Create Git Repository
+00. Create Git Repository
+01. Rename TiZii Files. (Move TiZii suffix to prefix)
+02. Comment Codes (add todos)
+03. Add Blocks to TiZii Board
+04. Code Spy Logic
+05. add Scoring function
