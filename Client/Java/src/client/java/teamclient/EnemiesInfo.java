@@ -38,21 +38,23 @@ public class EnemiesInfo {
     public void updateEnemyBoard(ArrayList<Hunter> hunters,
                                  ArrayList<GoldMiner> miners, ArrayList<Spy> spies){
         // add enemy players
-        for (Hunter hunter : hunters)   setCell(hunter.getCell(), Consts.HUNTER);
-        for (GoldMiner miner : miners)  setCell(miner.getCell(), Consts.MINER);
-        for (Spy spy : spies)           setCell(spy.getCell(), Consts.SPY);
+        for (Hunter hunter : hunters)   setCell(hunter.getCell(), Consts.HUNTER-1);
+        for (GoldMiner miner : miners)  setCell(miner.getCell(), Consts.MINER-1);
+        for (Spy spy : spies)           setCell(spy.getCell(), Consts.SPY-1);
 
         // update shadows and Unseen Cells
         for (int i=0 ; i<rows; i++){
             for(int j=0 ; j<cols; j++){
-                if (mBoard[i][j] >= Consts.HUNTER_SHADOW){       // if there is a shadow
+                if (mBoard[i][j] >= Consts.PLAYER){       // if there is a shadow
                     mBoard[i][j]++;
-                    if (Consts.isHUNTER_SHADOW(mBoard[i][j])) continue;
-                    if (Consts.isMINER_SHADOW(mBoard[i][j])) continue;
-                    if (Consts.isSPY_SHADOW(mBoard[i][j])) continue;
+                    if (Consts.isHUNTER_OR_SHADOW(mBoard[i][j])) continue;
+                    if (Consts.isMINER_OR_SHADOW(mBoard[i][j])) continue;
+                    if (Consts.isSPY_OR_SHADOW(mBoard[i][j])) continue;
                     mBoard[i][j] = Consts.EMPTY;
-                } else if (staticsInfo.mBoard[i][j] == Consts.EMPTY){  // updates unseen cells
+                } else if (mBoard[i][j] == Consts.UNSEEN && staticsInfo.mBoard[i][j] == Consts.EMPTY){  // updates unseen cells
                     mBoard[i][j] = Consts.EMPTY;
+                } else if (mBoard[i][j] == Consts.UNSEEN && staticsInfo.mBoard[i][j] == Consts.BLOCK){  // updates unseen cells
+                    mBoard[i][j] = Consts.BLOCK;
                 }
             }
         }
@@ -86,18 +88,20 @@ public class EnemiesInfo {
     public static class Consts{
         public static final int UNSEEN = 0;
         public static final int EMPTY  = 1;
-        public static final int HUNTER = 2;
-        public static final int MINER  = 3;
-        public static final int SPY    = 4;
-        public static final int HUNTER_SHADOW = 20;
-        public static final int MINER_SHADOW = 30;
-        public static final int SPY_SHADOW = 40;
+        public static final int BLOCK  = 2;
+        public static final int PLAYER = 20;
+        public static final int HUNTER = 30;
+        public static final int MINER  = 40;
+        public static final int SPY    = 50;
 
-        public static boolean isHUNTER_SHADOW(int x){ return x>= HUNTER_SHADOW && x< HUNTER_SHADOW + SHADOW_DUR; }
-        public static boolean isMINER_SHADOW(int x){ return x>= MINER_SHADOW && x< MINER_SHADOW + SHADOW_DUR; }
-        public static boolean isSPY_SHADOW(int x){ return x>= SPY_SHADOW && x< SPY_SHADOW + SHADOW_DUR; }
+        public static boolean isHUNTER_OR_SHADOW(int x){ return x >= HUNTER && x< HUNTER + SHADOW_DUR; }
+        public static boolean isMINER_OR_SHADOW(int x){ return x >= MINER && x< MINER + SHADOW_DUR; }
+        public static boolean isSPY_OR_SHADOW(int x){ return x >= SPY && x< SPY + SHADOW_DUR; }
+        public static boolean isHUNTER_SHADOW(int x){ return x > HUNTER && x< HUNTER + SHADOW_DUR; }
+        public static boolean isMINER_SHADOW(int x){ return x > MINER && x< MINER + SHADOW_DUR; }
+        public static boolean isSPY_SHADOW(int x){ return x > SPY && x< SPY + SHADOW_DUR; }
 
-        public static final int SHADOW_DUR = 3;      // Duration that shadow lives
+        public static final int SHADOW_DUR = 5;      // Duration that shadow lives
         public static final int DANGER_RADIUS = 2;   // if a enemy is nearer than this to player, player is in danger
     }
 
@@ -110,6 +114,7 @@ public class EnemiesInfo {
         StringBuilder sb = new StringBuilder(this.getClass().getName()); sb.append("\n");
         for(int i=0 ; i<rows ; i++){
             for(int j=0 ; j<cols; j++){
+                if (mBoard[i][j]/10 == 0) sb.append("0"); // leading zero
                 sb.append(mBoard[i][j]); sb.append(" ");
             }
             sb.append("\n");

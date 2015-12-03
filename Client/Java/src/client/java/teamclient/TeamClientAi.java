@@ -2,10 +2,13 @@ package client.java.teamclient;
 
 import client.java.communication.ClientGame;
 import client.java.teamclient.TiZiiClasses.DirectionScorePair;
+import client.java.teamclient.TiZiiClasses.DistanceDirectionPair;
 import client.java.teamclient.TiZiiClasses.StepsInDirection;
+import client.java.teamclient.TiZiiClasses.TiZiiPoint;
 import common.board.Board;
 import common.board.Cell;
 import common.board.Direction;
+import common.board.Gold;
 import common.player.GoldMiner;
 import common.player.Hunter;
 import common.player.Player;
@@ -37,11 +40,9 @@ public class TeamClientAi extends ClientGame {
     public void step() {
         initialize();
 
-        staticsInfo.updateStaticBoard(getGolds());
-        enemiesInfo.updateEnemyBoard(getOpponentHunters(), getOpponentGoldMiners(), getOpponentSpies());
+        staticsInfo.updateStaticBoard(getGolds());                                                          System.out.println(staticsInfo);
+        enemiesInfo.updateEnemyBoard(getOpponentHunters(), getOpponentGoldMiners(), getOpponentSpies());    System.out.println(enemiesInfo);
 
-        System.out.println(staticsInfo);
-        System.out.println(enemiesInfo);
 
         ArrayList<GoldMiner> goldMiners = getMyGoldMiners();
         ArrayList<Hunter> hunters = getMyHunters();
@@ -77,19 +78,27 @@ public class TeamClientAi extends ClientGame {
      * Runs per each miner.
      */
     private void minerLogic(GoldMiner miner) {
-        if (gameBoard.getGold(miner.getCell()) == null) {// !isOnGold TODO
-            Cell frontCell = miner.getCell().getAdjacentCell(miner.getMovementDirection());
-            Random rand;
-            rand = new Random();
-            int r = rand.nextInt(40);
-            if (r < 35 && frontCell!=null && frontCell.isEmpty()) {
-                move(miner);
-            } else {
-                rotateRand(miner);
+        Gold gold = gameBoard.getGold(miner.getCell());
+        if (gold == null) {
+            TiZiiPoint u = new TiZiiPoint(miner.getCell());
+
+            Integer assignedGold = alliesInfo.assignedGoldToPlayer.get(miner.getId());
+            if (assignedGold != null && !staticsInfo.deadGolds.contains(assignedGold)){
+                DistanceDirectionPair pair = staticsInfo.goldBFSTable[u.i][u.j].get(assignedGold);
+                moveOrRotate(miner, pair.direction);
             }
-        } else {
-            //DO NOTHING. MINING
+            else {
+                DistanceDirectionPair minDistPair = null;
+                for (Integer key : staticsInfo.goldBFSTable[u.i][u.j].keySet()){
+                    DistanceDirectionPair pair = staticsInfo.goldBFSTable[u.i][u.j].get(key);
+                    if (minDistPair == null || pair.distance < minDistPair.distance) minDistPair = pair;
+                }
+                if (minDistPair != null){
+                    moveOrRotate(miner, minDistPair.direction);
+                } else randomMove(miner);
+            }
         }
+        // else just mine;
     }
 
     /**
@@ -107,7 +116,7 @@ public class TeamClientAi extends ClientGame {
             if (r < 3 && frontCell != null && frontCell.isEmpty()) {
                 move(hunter);
             } else {
-                rotateRand(hunter);
+                randomRotate(hunter);
             }
         }
     }
@@ -122,28 +131,26 @@ public class TeamClientAi extends ClientGame {
         else spy.setHidden(false);
         DirectionScorePair[] scorePair = alliesInfo.getMovementScoresForSpy(spy);
         tiziiMove(spy, scorePair);
-//        Cell frontCell = spy.getCell().getAdjacentCell(spy.getMovementDirection());
-//        if (frontCell != null && frontCell.isEmpty()) {
-//            move(spy);
-//        } else {
-//            rotateRand(spy);
-//        }
     }
 
 
 
     private void tiziiMove(Player player, DirectionScorePair[] scorePair) {
         Arrays.sort(scorePair); // TODO: Add a random value to not to take best direction
-        for (int i=0 ; i<scorePair.length ; i++){
-            if (playerCanGo(player, scorePair[i].direction)) {
-                moveOrRotate(player, scorePair[i].direction);
+        for (DirectionScorePair pair : scorePair) {
+            if (canGo(player, pair.direction)) {
+                moveOrRotate(player, pair.direction);
                 StepsInDirection entry = alliesInfo.prevDirections.get(player.getId());
-                if (entry == null) alliesInfo.prevDirections.put(player.getId(), new StepsInDirection(0, scorePair[i].direction));
-                else if (entry.direction.equals(scorePair[i].direction))entry.steps++;
-                break;
+                if (entry == null)
+                    alliesInfo.prevDirections.put(player.getId(), new StepsInDirection(0, pair.direction));
+                else if (entry.direction.equals(pair.direction))
+                    entry.steps++;
+
+                return;
             }
         }
     }
+
 
     private void moveOrRotate(Player player, Direction direction) {
         if (player.getMovementDirection().equals(direction))
@@ -151,12 +158,23 @@ public class TeamClientAi extends ClientGame {
         else rotate(player, direction);
     }
 
-    private boolean playerCanGo(Player player, Direction dir) {
+    private boolean canGo(Player player, Direction dir) {
         return player.getCell().getAdjacentCell(dir) != null &&
                 player.getCell().getAdjacentCell(dir).isEmpty();
     }
 
-    private void rotateRand(Player player) {
+    private void randomMove(Player player){
+        Random rand;
+        rand = new Random();
+        int r = rand.nextInt(40);
+        if (r < 35 && canGo(player, player.getMovementDirection())) {
+            move(player);
+        } else {
+            randomRotate(player);
+        }
+    }
+
+    private void randomRotate(Player player) {
         Random rand;
         rand = new Random();
         int r = rand.nextInt(4);
@@ -164,7 +182,7 @@ public class TeamClientAi extends ClientGame {
 
         for (int i = 0; i < 4; i++) {
             Direction dir = directions[(r + i) % 4];
-            if (playerCanGo(player, dir)) {
+            if (canGo(player, dir) && !dir.equals(player.getMovementDirection())) {
                 rotate(player, dir); break;
             }
         }

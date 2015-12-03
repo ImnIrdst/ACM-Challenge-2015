@@ -22,6 +22,7 @@
 * We Can Run a BFS from Enemy Miners (or Players) and send our Hunters There.
 
 ## Diffrent Policies for Navigation
+* Code Diffrent Navigation Policies (toTarget, discovery, random walk, forceWalk, ...)
 * Set Score for each cell (use constants)
 * Don't go in a single direction too long (if Enemy is not behind you scape Bullets easly)
 
@@ -41,9 +42,8 @@
 * in very first rounds send spies unhidden after he sees an enemy (or after a constant period). hide him after he discovers all the map.
 
 # Todos
-06. fix the probelm with enemyInfo.
-07. Code Miner Logic (BFS)
-09. Code Hunter Logic (go Hunt)
+08. Fix BFS (Dont Use Golds array Use Memoised Ones).
+09. Code Hunter Logic (go Hunt).
 
 # Done
 00. Create Git Repository
@@ -52,3 +52,5 @@
 03. Add Blocks to TiZii Board
 04. Code Spy Logic
 05. add Scoring function
+06. fix the probelm with enemyInfo.
+07. Code Miner Logic (BFS)

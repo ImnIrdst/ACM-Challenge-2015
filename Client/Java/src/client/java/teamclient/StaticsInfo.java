@@ -1,16 +1,13 @@
 package client.java.teamclient;
 
+import client.java.teamclient.TiZiiClasses.DistanceDirectionPair;
+import client.java.teamclient.TiZiiClasses.TiZiiPoint;
 import common.board.Board;
 import common.board.Cell;
+import common.board.Direction;
 import common.board.Gold;
-import common.player.GoldMiner;
-import common.player.Hunter;
-import common.player.Player;
-import common.player.Spy;
 
-import java.util.ArrayList;
-
-import static client.java.teamclient.TiZiiUtils.inRange;
+import java.util.*;
 
 /**
  * Class name:   StaticsInfo
@@ -20,24 +17,38 @@ import static client.java.teamclient.TiZiiUtils.inRange;
 public class StaticsInfo {
     // Class Members
     public Board gameBoard;
-    public int rows, cols;                      // Dimensions of the mBoard
-    public int[][] mBoard;                 // Contains Golds, Blocks, Blanks, Objects That Does'nt Move.
-
+    public int rows, cols;                          // Dimensions of the mBoard
+    public int[][] mBoard;                          // Contains Golds, Blocks, Blanks, Objects That Does'nt Move.
+    public TreeMap<Integer, DistanceDirectionPair>[][] goldBFSTable; // Maps Gold id with Direction to it
+    public TreeSet<Integer> goldBFSCalculated;
+    public TreeSet<Integer> prevGolds;              // for finding dead gold
+    public TreeSet<Integer> deadGolds;
+    public TreeMap<Integer, Cell> curGoldLocations;
     // constructor
     public StaticsInfo(Board board) {
         this.gameBoard = board;
         this.rows = board.getNumberOfRows();
         this.cols = board.getNumberOfColumns();
         this.mBoard = new int[rows][cols];
+        this.prevGolds = new TreeSet<>();
+        this.deadGolds = new TreeSet<>();
+        this.curGoldLocations = new TreeMap<>();
+        this.goldBFSCalculated = new TreeSet<>();
+        this.goldBFSTable = new TreeMap[rows][cols];
+        for (int i=0 ; i<rows ; i++){
+            for(int j=0 ; j<cols ; j++){
+                this.goldBFSTable[i][j] = new TreeMap<>();
+            }
+        }
     }
 
     /**
      * update gold locations and adds new in sight locations.
      * @param golds list of all cells that contains gold
-     * @param cells all cells in the map (unseen cells are null)
      */
     public void updateStaticBoard(ArrayList<Gold> golds){
         Cell[][] cells = gameBoard.getCells();
+
         // Clear Gold Locations
         for(int i = 0 ; i<rows ; i++){
             for(int j=0 ; j<cols; j++) {
@@ -46,8 +57,25 @@ public class StaticsInfo {
         }
 
         // add Gold Locations
-        for (Gold gold : golds)
-            setCell(gold.getCell(), Consts.Gold); // TODO: Use value of mining time
+        TreeSet<Integer> curGolds = new TreeSet<>();
+        for (Gold gold : golds){
+            curGolds.add(gold.getId());
+            curGoldLocations.put(gold.getId(), gold.getCell());
+        }
+        if (prevGolds != null) {
+            for (Integer goldId : prevGolds) {
+                if (!curGolds.contains(goldId)) {
+                    goldBFS(goldId, true);       // TODO: Debug this for null pointer exception
+                    deadGolds.add(goldId);
+                }
+            }
+        }
+        for (Gold gold : golds) {
+            setCell(gold.getCell(), Consts.Gold);
+            curGoldLocations.put(gold.getId(), gold.getCell());
+            if (!goldBFSCalculated.contains(gold.getId())) goldBFS(gold.getId(), false);
+        }
+        prevGolds = curGolds;
 
         // add Block and Empty Locations
         for(int i = 0 ; i<rows ; i++){
@@ -55,6 +83,28 @@ public class StaticsInfo {
                 if ( cells[i][j] == null || mBoard[i][j]!=Consts.UNSEEN) continue;
                 if ( cells[i][j].getType().isBlock()) setCell(cells[i][j], Consts.BLOCK);
                 if (!cells[i][j].getType().isBlock()) setCell(cells[i][j], Consts.EMPTY);
+            }
+        }
+    }
+
+    void goldBFS(Integer goldId, boolean isClear){
+        goldBFSCalculated.add(goldId);
+        TiZiiPoint s = new TiZiiPoint(curGoldLocations.get(goldId));
+        Queue<TiZiiPoint> q = new LinkedList<>();
+        int[][] vis = new int[rows][cols];
+        for (int i=0 ; i<rows ; i++) Arrays.fill(vis[i], -1);
+        q.add(s); vis[s.i][s.j] = 0;
+
+        while (!q.isEmpty()){
+            TiZiiPoint u = q.poll();
+            for (Direction dir : Direction.values()){
+                TiZiiPoint v = new TiZiiPoint(u.i + dir.getDeltaRow(), u.j + dir.getDeltaCol());
+                if (TiZiiUtils.inRange(v.i, v.j) && vis[v.i][v.j] < 0){
+                    q.add(v); vis[v.i][v.j] = vis[u.i][u.j] + 1;
+                    if (!isClear) goldBFSTable[v.i][v.j].put(goldId
+                                , new DistanceDirectionPair(vis[v.i][v.j], TiZiiUtils.getReverseDirection(dir)));
+                    else          goldBFSTable[v.i][v.j].remove(goldId);
+                }
             }
         }
     }
@@ -73,7 +123,7 @@ public class StaticsInfo {
         public static final int UNSEEN = 0;
         public static final int EMPTY  = 1;
         public static final int BLOCK  = 2;
-        public static final int BLIND = 3;
+        public static final int BLIND  = 3;
         public static final int Gold   = 9;
     }
 
