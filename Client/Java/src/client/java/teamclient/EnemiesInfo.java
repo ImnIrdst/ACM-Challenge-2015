@@ -111,7 +111,7 @@ public class EnemiesInfo {
      */
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder(this.getClass().getName()); sb.append("\n");
+        StringBuilder sb = new StringBuilder(this.getClass().getName() + "\n");
         for(int i=0 ; i<rows ; i++){
             for(int j=0 ; j<cols; j++){
                 if (mBoard[i][j]/10 == 0) sb.append("0"); // leading zero
@@ -122,24 +122,3 @@ public class EnemiesInfo {
         return sb.toString();
     }
 }
-
-// Trash Can
-//
-//    public void addPlayerSight(Player player){
-//        Cell cell = player.getCell();
-//        for (Cell curCell : cell.getAroundCells()){
-//            int i = curCell.getRowNumber();
-//            int j = curCell.getColumnNumber();
-//            if (!inRange(i, j) || mBoard[i][j] != Consts.UNSEEN) continue;
-//            if (curCell.isEmpty()) setCell(curCell, Consts.SEEN);
-//            if (curCell.getType().isBlock()) setCell(curCell, Consts.BLOCK);
-//        }
-//        for(int i=cell.getRowNumber() - 1; i<=cell.getRowNumber()+1 ; i++){
-//            for(int j=cell.getColumnNumber() - 1; j<=cell.getColumnNumber()+1 ; j++){
-//                if(inRange(i, j) && mBoard[i][j] == Consts.UNSEEN){
-//                    Cell curCell = gameBoard.getCellAt(i, j);
-//                    if (curCell.getType().isBlock()) mBoard[i][j] = Consts.SEEN;
-//                }
-//            }
-//        }
-//    }

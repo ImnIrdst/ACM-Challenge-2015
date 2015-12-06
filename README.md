@@ -7,12 +7,15 @@
 * [MIT Battle Code Course](http://ocw.mit.edu/courses/electrical-engineering-and-computer-science/6-370-the-battlecode-programming-competition-january-iap-2013/)
 
 # Ideas
+
+## Shuffle Players for random priorities
+* this avoids some repetitive movements.
 ## Code Multiple Clients
 * For Diffrent Strategies Keep Diffrent Clients Compete Them With Each Other and Compare Them.
 * Use git branches and then keep they in jar files.
 
-## Use Sorushes Wings Idea
-* Go Ahead Until
+## Use Wings Idea
+* Go Ahead Until Its Possible
 
 ## Use Tangents Theory
 * Mark Blind Points
@@ -28,10 +31,11 @@
 
 
 ## Diffrent Policies for Sending Hunters
+* Keep Hunters Watching (Turning Around) on Gold Till One Of the Miners Get There.
 * Send two hunters with each other and use them for side attacks.
 * Send Hunters to kill other Miners (and Hunters).
 * Send Hunters to protect Minters.
-* Fire low amount of arrows.
+* Fire a few amount of arrows.
 
 ## Policies for each target (gold or hunt)
 * have diffrent grids per diffrent types of target.
@@ -42,15 +46,19 @@
 * in very first rounds send spies unhidden after he sees an enemy (or after a constant period). hide him after he discovers all the map.
 
 # Todos
-08. Fix BFS (Dont Use Golds array Use Memoised Ones).
-09. Code Hunter Logic (go Hunt).
+11. Define a new table for locations that discovered for gold.
+12. Simple Gold Discovery Using BFS.
+13. Code Hunter Logic (go Hunt).
 
 # Done
 00. Create Git Repository
 01. Rename TiZii Files. (Move TiZii suffix to prefix)
-02. Comment Codes (add todos)
-03. Add Blocks to TiZii Board
-04. Code Spy Logic
-05. add Scoring function
+02. Comment Codes (add todos).
+03. Add Blocks to TiZii Board.
+04. Code Spy Logic.
+05. add Scoring function.
 06. fix the probelm with enemyInfo.
 07. Code Miner Logic (BFS)
+08. Fix BFS (Clearing Digged Golds).
+09. Fix Target Assigning.
+10. Comment and orgnise.

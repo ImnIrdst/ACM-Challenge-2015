@@ -2,10 +2,14 @@
   <dictionary name="iman">
     <words>
       <w>consts</w>
+      <w>coord</w>
+      <w>coords</w>
       <w>dangerradius</w>
+      <w>digged</w>
       <w>huntershadow</w>
       <w>minershadow</w>
       <w>shadowdur</w>
+      <w>soroush</w>
       <w>spyshadow</w>
       <w>tizii</w>
     </words>
