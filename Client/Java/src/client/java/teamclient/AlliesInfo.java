@@ -7,7 +7,9 @@ import common.board.Board;
 import common.board.Cell;
 import common.board.Direction;
 import common.player.Bullet;
+import common.player.Hunter;
 import common.player.Player;
+import sun.misc.Cleaner;
 import sun.reflect.generics.tree.Tree;
 
 import java.util.ArrayList;
@@ -24,6 +26,7 @@ public class AlliesInfo {
     public Board gameBoard;
     public EnemiesInfo enemiesInfo;
     public StaticsInfo staticsInfo;
+	public ArrayList<Player> myPlayers;
     public HashMap<Integer, StepsInDirection> prevDirections;       // for calculating FORWARD_SCORE.
     public TreeSet<TiZiiCoord> blockedCoords;                       // for avoiding collisions and my Bullets.
     public TreeSet<TiZiiCoord> playerAndBullets;                    // for detecting block cells
@@ -55,7 +58,7 @@ public class AlliesInfo {
         this.blockedCoords = new TreeSet<>();
         this.playerAndBullets = new TreeSet<>();
         this.curAroundCells = new TreeSet<>();
-
+		this.myPlayers = myPlayers;
         // process my current players
         TreeSet<Integer> curPlayers = new TreeSet<>();
         for (Player player : myPlayers){
@@ -93,6 +96,11 @@ public class AlliesInfo {
         }
     }
 
+	/**
+	 * returns 4 scores for each direction if we want to go for discovery.
+	 * @param player player we want to Calculate scores for it.
+	 * @return 4 scores for each direction.
+	 */
     public DirectionScorePair[] getDiscoveryMovementScores(Player player){
         DirectionScorePair[] pairs = new DirectionScorePair[4];
         for (int i=0 ; i<4; i++) pairs[i] = new DirectionScorePair(Direction.values()[i], 0);
@@ -152,53 +160,61 @@ public class AlliesInfo {
         if (di == 0){
             for (int i=ii-1 ; i>=ii-Consts.WING_LENGTH ; i--){
                 if (!TiZiiUtils.inRange(i,jj)) break;
-                if (staticsInfo.mBoard[i][jj] == StaticsInfo.Consts.BLOCK) break;
+                if (staticsInfo.discoveredAreas[i][jj] == StaticsInfo.Consts.BLOCK) break;
                 for (int j=jj+dj ; true ; j+=dj){
                     if (!TiZiiUtils.inRange(i, j)) break;
-                    if (staticsInfo.mBoard[i][j] == StaticsInfo.Consts.BLOCK) break;
-                    if (staticsInfo.mBoard[i][j] == subject) cnt++;
+                    if (staticsInfo.discoveredAreas[i][j] == StaticsInfo.Consts.BLOCK) break;
+                    if (staticsInfo.discoveredAreas[i][j] == subject) cnt++;
                 }
             }
             for (int i=ii ; i<=ii+Consts.WING_LENGTH ; i++){
                 if (!TiZiiUtils.inRange(i,jj)) break;
-                if (staticsInfo.mBoard[i][jj] == StaticsInfo.Consts.BLOCK) break;
+                if (staticsInfo.discoveredAreas[i][jj] == StaticsInfo.Consts.BLOCK) break;
                 for (int j=jj+dj ; true  ; j+=dj){
                     if (!TiZiiUtils.inRange(i, j)) break;
-                    if (staticsInfo.mBoard[i][j] == StaticsInfo.Consts.BLOCK) break;
-                    if (staticsInfo.mBoard[i][j] == subject) cnt++;
+                    if (staticsInfo.discoveredAreas[i][j] == StaticsInfo.Consts.BLOCK) break;
+                    if (staticsInfo.discoveredAreas[i][j] == subject) cnt++;
                 }
             }
         }
         if (dj == 0){
             for (int j=jj-1 ; j>=jj-Consts.WING_LENGTH ; j--){
                 if (!TiZiiUtils.inRange(ii, j)) break;
-                if (staticsInfo.mBoard[ii][j] == StaticsInfo.Consts.BLOCK) break;
+                if (staticsInfo.discoveredAreas[ii][j] == StaticsInfo.Consts.BLOCK) break;
                 for (int i=ii+di ; TiZiiUtils.inRange(i,jj) ; i+=di){
                     if (!TiZiiUtils.inRange(i, j)) break;
-                    if (staticsInfo.mBoard[i][j] == StaticsInfo.Consts.BLOCK) break;
-                    if (staticsInfo.mBoard[i][j] == subject) cnt++;
+                    if (staticsInfo.discoveredAreas[i][j] == StaticsInfo.Consts.BLOCK) break;
+                    if (staticsInfo.discoveredAreas[i][j] == subject) cnt++;
                 }
             }
             for (int j=jj ; j<=jj+Consts.WING_LENGTH ; j++){
                 if (!TiZiiUtils.inRange(ii, j)) break;
-                if (staticsInfo.mBoard[ii][j] == StaticsInfo.Consts.BLOCK) break;
+                if (staticsInfo.discoveredAreas[ii][j] == StaticsInfo.Consts.BLOCK) break;
                 for (int i=ii+di ; TiZiiUtils.inRange(i,jj) ; i+=di){
                     if (!TiZiiUtils.inRange(i, j)) break;
-                    if (staticsInfo.mBoard[i][j] == StaticsInfo.Consts.BLOCK) break;
-                    if (staticsInfo.mBoard[i][j] == subject) cnt++;
+                    if (staticsInfo.discoveredAreas[i][j] == StaticsInfo.Consts.BLOCK) break;
+                    if (staticsInfo.discoveredAreas[i][j] == subject) cnt++;
                 }
             }
         }
         return cnt;
     }
 
+	public boolean noAlliesInsight(Hunter hunter) {
+		for (Cell cell : hunter.getAheadCells()){
+			Player playerInside = cell.getPlayerInside();
+			if (playerInside != null && playerInside.getTeam().getId() == hunter.getTeam().getId()) return false;
+		}
+		return true;
+	}
 
-    public static class Consts {
+
+	public static class Consts {
         // TODO: Adjust These.
         public static final int BLOCK_SCORE = -1000;
         public static final int FORWARD_SCORE = 2;
         public static final int BACKWARD_SCORE  = -500;
-        public static final int UNSEEN_CELL_SCORE = 10;
+        public static final int UNSEEN_CELL_SCORE = 50;
         public static final int WING_LENGTH = 2;
     }
 }

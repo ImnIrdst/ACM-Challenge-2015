@@ -40,24 +40,26 @@ public class TeamClientAi extends ClientGame {
     public void step() {
         initialize();
 
+        // updating.
         alliesInfo.updateAlliesInfo(getMyPlayers(), getOpponentPlayers(), getBullets()); // must use this before updating staticsBoard
-        staticsInfo.updateStaticBoard(getGolds());
+        staticsInfo.updateStaticBoard(getGolds(), getMyPlayers());
         enemiesInfo.updateEnemyBoard(getOpponentHunters(), getOpponentGoldMiners(), getOpponentSpies());
-
         TiZiiUtils.update(alliesInfo);
 
+        // logging
         if (TiZiiUtils.isLoggingEnabled && TiZiiUtils.needed)       System.out.println(staticsInfo);
         if (TiZiiUtils.isLoggingEnabled && TiZiiUtils.notNeeded)    System.out.println(enemiesInfo);
         if (TiZiiUtils.isLoggingEnabled && TiZiiUtils.notNeeded)    TiZiiUtils.printBoard(gameBoard.getCells(), "Not Null Cells");
         if (TiZiiUtils.isLoggingEnabled && TiZiiUtils.notNeeded)    TiZiiUtils.printBoard(staticsInfo.goldBFSTable, "Gold BFS TABLE");
         if (TiZiiUtils.isLoggingEnabled && TiZiiUtils.needed)       TiZiiUtils.printGoldBfsDirections(staticsInfo.goldBFSTable, "Gold BFS Directions");
+        if (TiZiiUtils.isLoggingEnabled && TiZiiUtils.needed)       TiZiiUtils.printBoard(staticsInfo.discoveredAreas, "Discovered Areas.");
 
         ArrayList<GoldMiner> goldMiners = getMyGoldMiners();
         ArrayList<Hunter> hunters = getMyHunters();
         ArrayList<Spy> spies = getMySpies();
 
-        for (GoldMiner miner : goldMiners)  minerLogic(miner);
-        for (Hunter hunter : hunters)       hunterLogic(hunter);
+	    for (Hunter hunter : hunters)       hunterLogic(hunter);    // Must Come Before Miners and Spies
+	    for (GoldMiner miner : goldMiners)  minerLogic(miner);
         for (Spy spy : spies)               spyLogic(spy);
     }
 
@@ -111,16 +113,14 @@ public class TeamClientAi extends ClientGame {
                     alliesInfo.assignedPlayerToGold.put(miner.getId(), assignedGold);
 	                alliesInfo.assignedGoldToPlayer.put(assignedGold, miner.getId());
                     moveOrRotate(miner, minDistPair.direction);
-                } else minerHeuristicMove(miner);
+                } else { // miner discovery move.
+	                DirectionScorePair[] scorePair = alliesInfo.getDiscoveryMovementScores(miner);
+	                Arrays.sort(scorePair);
+	                tiziiMove(miner, scorePair);
+                }
             }
         }
         // else just mine;
-    }
-
-    private void minerHeuristicMove(GoldMiner miner) {
-        DirectionScorePair[] scorePair = alliesInfo.getDiscoveryMovementScores(miner);
-        Arrays.sort(scorePair);
-        tiziiMove(miner, scorePair);
     }
 
     /**
@@ -128,16 +128,17 @@ public class TeamClientAi extends ClientGame {
      * Runs per each hunter.
      */
     private void hunterLogic(Hunter hunter) {
-        if (hunter.getVisibleEnemy().size() > 0) {// can kill someone
+        if (hunter.getVisibleEnemy().size() > 0 && hunter.canAttack()
+		        && alliesInfo.noAlliesInsight(hunter)) {// can kill someone
             fire(hunter);
-        } else {// can not kill anyone
-            Cell frontCell = hunter.getCell().getAdjacentCell(hunter.getMovementDirection());
-            int r = TiZiiUtils.getRandomNumber(4);
-            if (r < 3 && frontCell != null && frontCell.isEmpty()) {
-                move(hunter);
-            } else {
-                randomRotate(hunter);
-            }
+	        for (Cell cell : hunter.getAheadCells()){
+		        alliesInfo.blockedCoords.add(new TiZiiCoord(cell));
+	        }
+        } else { // can not kill anyone
+	        // discovery move.
+	        DirectionScorePair[] scorePair = alliesInfo.getDiscoveryMovementScores(hunter);
+	        Arrays.sort(scorePair);
+	        tiziiMove(hunter, scorePair);
         }
     }
 
@@ -151,8 +152,6 @@ public class TeamClientAi extends ClientGame {
         DirectionScorePair[] scorePair = alliesInfo.getDiscoveryMovementScores(spy);
         tiziiMove(spy, scorePair);
     }
-
-
 
     private void tiziiMove(Player player, DirectionScorePair[] scorePair) {
         Arrays.sort(scorePair); // TODO: Add a random value to not to take best direction
@@ -186,10 +185,11 @@ public class TeamClientAi extends ClientGame {
 
 
     private void moveOrRotate(Player player, Direction direction) {
-
-        if (player.getMovementDirection().equals(direction)) {
+        if (player.getMovementDirection().equals(direction) && canGo(player, direction)) {
             move(player);
             alliesInfo.blockedCoords.add(new TiZiiCoord(player.getCell().getAdjacentCell(direction)));
+        } else if (player.getMovementDirection().equals(direction) && !canGo(player, direction)){
+			randomMove(player);
         } else {
             rotate(player, direction);
             alliesInfo.blockedCoords.add(new TiZiiCoord(player.getCell()));
@@ -215,20 +215,18 @@ public class TeamClientAi extends ClientGame {
         int rand = TiZiiUtils.getRandomNumber(40);
         if (rand < 35 && canGo(player, player.getMovementDirection())) {
             move(player);
+	        TiZiiCoord nextCoords = new TiZiiCoord(player.getCell().getAdjacentCell(player.getMovementDirection()));
+	        alliesInfo.blockedCoords.add(nextCoords);
         } else {
-            randomRotate(player);
-        }
-    }
+	        rand = TiZiiUtils.getRandomNumber(4);
+	        Direction[] directions = Direction.values();
 
-    private void randomRotate(Player player) {
-        int rand = TiZiiUtils.getRandomNumber(4);
-        Direction[] directions = Direction.values();
-
-        for (int i = 0; i < 4; i++) {
-            Direction dir = directions[(rand + i) % 4];
-            if (canGo(player, dir) && !dir.equals(player.getMovementDirection())) {
-                rotate(player, dir); break;
-            }
+	        for (int i = 0; i < 4; i++) {
+		        Direction dir = directions[(rand + i) % 4];
+		        if (canGo(player, dir) && !dir.equals(player.getMovementDirection())) {
+			        rotate(player, dir); break;
+		        }
+	        }
         }
     }
 }

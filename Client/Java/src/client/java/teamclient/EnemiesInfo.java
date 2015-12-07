@@ -7,6 +7,7 @@ import common.player.Hunter;
 import common.player.Spy;
 
 import java.util.ArrayList;
+import java.util.TreeMap;
 
 /**
  * Class name:   EnemiesInfo
@@ -19,7 +20,8 @@ public class EnemiesInfo {
     public int[][] mBoard;                      // Member Board
     public Board gameBoard;
     public StaticsInfo staticsInfo;
-    // constructor
+
+	// constructor
     public EnemiesInfo(Board gameBoard, StaticsInfo staticsInfo) {
         this.gameBoard = gameBoard;
         this.rows = gameBoard.getNumberOfRows();

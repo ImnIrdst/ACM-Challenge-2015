@@ -1,11 +1,12 @@
 package client.java.teamclient;
 
+import client.java.teamclient.TiZiiClasses.DistanceDirectionPair;
+import client.java.teamclient.TiZiiClasses.TiZiiCoord;
 import common.board.Board;
 import common.board.Cell;
 import common.board.Direction;
 
-import java.util.Random;
-import java.util.TreeMap;
+import java.util.*;
 
 /**
  * Created by iman on 12/2/15.
@@ -31,6 +32,40 @@ public class TiZiiUtils {
         rows = staticsInfo.rows;
         cols = staticsInfo.cols;
         gameBoard = staticsInfo.gameBoard;
+    }
+
+    /**
+     * Runs a bfs for gold if two phases. 1. Clearing 2. not Clearing
+     * @param itemId root of the bfs.
+     * @param isClearing defines phase of the bfs.
+     */
+    public static void BFS(Integer itemId, TiZiiCoord itemCoords, TreeMap[][] bfsTable, boolean isClearing){
+        staticsInfo.goldBFSCalculated.add(itemId);
+
+        TiZiiCoord s = itemCoords;
+        Queue<TiZiiCoord> q = new LinkedList<>();
+
+        int[][] vis = new int[rows][cols];
+        for (int i=0 ; i<rows ; i++) Arrays.fill(vis[i], -1);
+
+        q.add(s); vis[s.i][s.j] = 0;
+
+        while (!q.isEmpty()){
+            TiZiiCoord u = q.poll();
+            for (Direction dir : Direction.values()){
+                TiZiiCoord v = new TiZiiCoord(u.i + dir.getDeltaRow(), u.j + dir.getDeltaCol());
+                if (TiZiiUtils.inRange(v.i, v.j) && vis[v.i][v.j] < 0 && staticsInfo.mBoard[v.i][v.j] == StaticsInfo.Consts.EMPTY){
+                    q.add(v); vis[v.i][v.j] = vis[u.i][u.j] + 1;
+
+                    if (!isClearing)
+                        bfsTable[v.i][v.j].put(itemId,
+                                new DistanceDirectionPair(vis[v.i][v.j],
+                                        TiZiiUtils.getReverseDirection(dir)));
+                    else
+                        bfsTable[v.i][v.j].remove(itemId);
+                }
+            }
+        }
     }
 
     public static int getRandomNumber(int x){

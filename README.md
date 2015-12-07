@@ -10,24 +10,27 @@
 
 ## Shuffle Players for random priorities
 * this avoids some repetitive movements.
+
+## Implement Avoid Bullets function
+* ...
+
+## Enemy Hunter (Player on the Gold)
+* Send Hunter Using BFS to Kill Him.
+
 ## Code Multiple Clients
 * For Diffrent Strategies Keep Diffrent Clients Compete Them With Each Other and Compare Them.
 * Use git branches and then keep they in jar files.
 
-## Use Wings Idea
-* Go Ahead Until Its Possible
-
-## Use Tangents Theory
-* Mark Blind Points
-
-## BFS From Golds and Enemies
+## Policies for Miner (BFS From Golds and Enemies)
 * We Can Run a BFS from Golds and Keep it in a table to send our Miners To There.
 * We Can Run a BFS from Enemy Miners (or Players) and send our Hunters There.
+* Use Fuzzy Assigning for Nearest miner to a gold.
 
 ## Diffrent Policies for Navigation
 * Code Diffrent Navigation Policies (toTarget, discovery, random walk, forceWalk, ...)
 * Set Score for each cell (use constants)
 * Don't go in a single direction too long (if Enemy is not behind you scape Bullets easly)
+* Use Bfs for Some Constant Undiscovered Edge Locations.
 
 
 ## Diffrent Policies for Sending Hunters
@@ -45,10 +48,16 @@
 * send spies for undetected cells.
 * in very first rounds send spies unhidden after he sees an enemy (or after a constant period). hide him after he discovers all the map.
 
+## Use Wings Idea
+* Go Ahead Until Its Possible
+
+## Use Tangents Theory
+* Mark Blind Points
+
 # Todos
-11. Define a new table for locations that discovered for gold.
-12. Simple Gold Discovery Using BFS.
-13. Code Hunter Logic (go Hunt).
+14. Implement Avoid Bullets function.
+15. Kill Hunter on the Gold Strategy.
+16. Edge Cells BFS.
 
 # Done
 00. Create Git Repository
@@ -62,3 +71,6 @@
 08. Fix BFS (Clearing Digged Golds).
 09. Fix Target Assigning.
 10. Comment and orgnise.
+11. Define a new table for locations that discovered for gold.
+12. Simple Gold Discovery Walk Using BFS.
+13. Code Hunter Logic (go Hunt).

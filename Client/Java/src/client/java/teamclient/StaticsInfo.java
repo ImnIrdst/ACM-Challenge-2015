@@ -6,6 +6,8 @@ import common.board.Board;
 import common.board.Cell;
 import common.board.Direction;
 import common.board.Gold;
+import common.player.GoldMiner;
+import common.player.Player;
 
 import java.util.*;
 
@@ -19,6 +21,7 @@ public class StaticsInfo {
     public int rows, cols;                          // Dimensions of the mBoard
 
     public int[][] mBoard;                          // Contains Golds, Blocks, Blanks, Objects That Does'nt Move.
+    public int[][] discoveredAreas;
     public TreeMap<Integer, DistanceDirectionPair>[][] goldBFSTable; // Maps GOLD id with Direction to it
     public TreeSet<Integer> goldBFSCalculated;            // All The Gold With BFS Calculated.
     public TreeSet<TiZiiCoord> curGoldLocations;          // Current Locations that contains gold.
@@ -34,6 +37,7 @@ public class StaticsInfo {
         this.rows = board.getNumberOfRows();
         this.cols = board.getNumberOfColumns();
         this.mBoard = new int[rows][cols];
+	    this.discoveredAreas = new int[rows][cols];
         this.goldIdToCoordMap = new TreeMap<>();
         this.coordToGoldIdMap = new TreeMap<>();
         this.goldBFSCalculated = new TreeSet<>();
@@ -50,29 +54,52 @@ public class StaticsInfo {
      * update gold locations and adds new in sight locations.
      * @param golds list of all cells that contains gold
      */
-    public void updateStaticBoard(ArrayList<Gold> golds){
+    public void updateStaticBoard(ArrayList<Gold> golds, ArrayList<Player> players){
         Cell[][] cells = gameBoard.getCells();
 
         // Processing New Golds.
         curGoldLocations = new TreeSet<>();          // Current Cycle Visible Golds.
         for (Gold gold : golds){
-            curGoldLocations.add(new TiZiiCoord(gold.getCell()));
-            goldIdToCoordMap.put(gold.getId(), new TiZiiCoord(gold.getCell()));
-            coordToGoldIdMap.put(new TiZiiCoord(gold.getCell()), gold.getId());
+	        TiZiiCoord coord = new TiZiiCoord(gold.getCell());
+            curGoldLocations.add(coord);
+            goldIdToCoordMap.put(gold.getId(), coord);
+            coordToGoldIdMap.put(coord, gold.getId());
+			discoveredAreas[coord.i][coord.j] = Consts.GOLD;
+	        setCell(gold.getCell(), Consts.GOLD);                       // Calculate BFS.
+	        if (!goldBFSCalculated.contains(gold.getId()))
+		        TiZiiUtils.BFS(gold.getId(), coord, goldBFSTable, false);
+	        if (alliesInfo.assignedGoldToPlayer.containsKey(gold.getId())) continue;
 
-            setCell(gold.getCell(), Consts.GOLD);                       // Calculate BFS.
-            if (!goldBFSCalculated.contains(gold.getId())) goldBFS(gold.getId(), false);
+	        // assign closest available miner to gold
+	        Integer minDist = (int) 1e8;
+	        Integer assignedMiner = null;
+	        for (Player miner : players){
+				if (miner instanceof GoldMiner){
+					TiZiiCoord minerCoords = new TiZiiCoord(miner.getCell());
+					DistanceDirectionPair pair = goldBFSTable[minerCoords.i][minerCoords.j].get(gold.getId());
+					if (pair != null && pair.distance < minDist
+							&& !alliesInfo.assignedPlayerToGold.containsKey(miner.getId())){
+						minDist = pair.distance; assignedMiner = miner.getId();
+					}
+				}
+			}
+	        if (assignedMiner != null){
+		        alliesInfo.assignedPlayerToGold.put(assignedMiner, gold.getId());
+		        alliesInfo.assignedGoldToPlayer.put(gold.getId(), assignedMiner);
+	        }
         }
 
         // Remove Digged Golds.
         for (TiZiiCoord coord : alliesInfo.curAroundCells){
             int i = coord.i, j = coord.j;
-            if (coordToGoldIdMap.containsKey(new TiZiiCoord(i,j))
+            if (coordToGoldIdMap.containsKey(coord)
                     && mBoard[i][j] == Consts.GOLD
-                    && !curGoldLocations.contains(new TiZiiCoord(i, j))) {
-                goldBFS(coordToGoldIdMap.get(new TiZiiCoord(i, j)), true); // Clearing BFS
-                goldIdToCoordMap.remove(coordToGoldIdMap.get(new TiZiiCoord(i, j)));
-                coordToGoldIdMap.remove(new TiZiiCoord(i,j)); mBoard[i][j] = Consts.EMPTY;
+                    && !curGoldLocations.contains(coord)) {
+
+                TiZiiUtils.BFS(coordToGoldIdMap.get(coord), coord, goldBFSTable, true); // Clearing BFS
+                goldIdToCoordMap.remove(coordToGoldIdMap.get(coord));
+                coordToGoldIdMap.remove(coord); mBoard[i][j] = Consts.EMPTY;
+	            discoveredAreas[coord.i][coord.j] = Consts.EMPTY;
             }
         }
 
@@ -84,41 +111,17 @@ public class StaticsInfo {
                 if (!cells[i][j].getType().isBlock()) setCell(cells[i][j], Consts.EMPTY);
             }
         }
-    }
 
-    /**
-     * Runs a bfs for gold if two phases. 1. Clearing 2. not Clearing
-     * @param goldId root of the bfs.
-     * @param isClearing defines phase of the bfs.
-     */
-    void goldBFS(Integer goldId, boolean isClearing){
-        goldBFSCalculated.add(goldId);
-
-        TiZiiCoord s = new TiZiiCoord(goldIdToCoordMap.get(goldId));
-        Queue<TiZiiCoord> q = new LinkedList<>();
-
-        int[][] vis = new int[rows][cols];
-        for (int i=0 ; i<rows ; i++) Arrays.fill(vis[i], -1);
-
-        q.add(s); vis[s.i][s.j] = 0;
-
-        while (!q.isEmpty()){
-            TiZiiCoord u = q.poll();
-            for (Direction dir : Direction.values()){
-                TiZiiCoord v = new TiZiiCoord(u.i + dir.getDeltaRow(), u.j + dir.getDeltaCol());
-                if (TiZiiUtils.inRange(v.i, v.j) && vis[v.i][v.j] < 0 && mBoard[v.i][v.j] == Consts.EMPTY){
-                    q.add(v); vis[v.i][v.j] = vis[u.i][u.j] + 1;
-
-                    if (!isClearing)
-                        goldBFSTable[v.i][v.j].put(goldId,
-                                new DistanceDirectionPair(vis[v.i][v.j],
-                                        TiZiiUtils.getReverseDirection(dir)));
-
-                    else
-                        goldBFSTable[v.i][v.j].remove(goldId);
-                }
-            }
-        }
+	    // add discovered areas that doe'snt contains gold.
+	    for (Player player : players) {
+		    for (Cell cell : player.getAroundCells()) {
+				if (discoveredAreas[cell.getRowNumber()][cell.getColumnNumber()] == Consts.UNSEEN) {
+					if (cell.getType().isBlock())
+						 discoveredAreas[cell.getRowNumber()][cell.getColumnNumber()] = Consts.BLOCK;
+					else discoveredAreas[cell.getRowNumber()][cell.getColumnNumber()] = Consts.EMPTY;
+				}
+		    }
+	    }
     }
 
     /**
