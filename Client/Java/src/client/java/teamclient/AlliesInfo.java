@@ -2,15 +2,13 @@ package client.java.teamclient;
 
 import client.java.teamclient.TiZiiClasses.DirectionScorePair;
 import client.java.teamclient.TiZiiClasses.StepsInDirection;
-import client.java.teamclient.TiZiiClasses.TiZiiCoord;
+import client.java.teamclient.TiZiiClasses.TiZiiCoords;
 import common.board.Board;
 import common.board.Cell;
 import common.board.Direction;
 import common.player.Bullet;
 import common.player.Hunter;
 import common.player.Player;
-import sun.misc.Cleaner;
-import sun.reflect.generics.tree.Tree;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,15 +26,14 @@ public class AlliesInfo {
     public StaticsInfo staticsInfo;
 	public ArrayList<Player> myPlayers;
     public HashMap<Integer, StepsInDirection> prevDirections;       // for calculating FORWARD_SCORE.
-    public TreeSet<TiZiiCoord> blockedCoords;                       // for avoiding collisions and my Bullets.
-    public TreeSet<TiZiiCoord> playerAndBullets;                    // for detecting block cells
-    public TreeSet<TiZiiCoord> curAroundCells;                   // for removing golds
+    public TreeSet<TiZiiCoords> blockedCoords;                       // for avoiding collisions and my Bullets.
+    public TreeSet<TiZiiCoords> playerAndBullets;                    // for detecting block cells
+    public TreeSet<TiZiiCoords> curAroundCells;                   // for removing golds
     public TreeSet<Integer> prevPlayers;                            // for finding dead players.
     //public TreeSet<Integer> deadPlayers;                          // not Needed Now.
 
     public TreeMap<Integer, Integer> assignedGoldToPlayer;          // Maps Each Gold to a player
     public TreeMap<Integer, Integer> assignedPlayerToGold;          // Maps Each Player to a Gold
-    //public static HashMap<Integer, Integer> assignedToTarget; // TODO: Use This.
 
     public AlliesInfo(Board gameBoard, EnemiesInfo enemiesInfo, StaticsInfo staticsInfo) {
         this.gameBoard = gameBoard;
@@ -63,10 +60,10 @@ public class AlliesInfo {
         TreeSet<Integer> curPlayers = new TreeSet<>();
         for (Player player : myPlayers){
             curPlayers.add(player.getId());
-            blockedCoords.add(new TiZiiCoord(player.getCell()));
-            playerAndBullets.add(new TiZiiCoord(player.getCell()));
+            blockedCoords.add(new TiZiiCoords(player.getCell()));
+            playerAndBullets.add(new TiZiiCoords(player.getCell()));
             for (Cell cell : player.getCell().getAroundCells()){
-                curAroundCells.add(new TiZiiCoord(cell));
+                curAroundCells.add(new TiZiiCoords(cell));
             }
         }
 
@@ -85,13 +82,18 @@ public class AlliesInfo {
 
         // add enemy players to player and bullets to avoid those.
         for (Player player : enemyPlayers){
-            playerAndBullets.add(new TiZiiCoord(player.getCell()));
+            playerAndBullets.add(new TiZiiCoords(player.getCell()));
+	        if (player instanceof Hunter) {
+		        for (Cell cell : player.getAheadCells()){
+			        blockedCoords.add(new TiZiiCoords(cell));
+		        }
+	        }
         }
 
         for (Bullet bullet : bullets) {
             if (bullet.getCell().getAdjacentCell(bullet.getMovementDirection()) != null) {
-                playerAndBullets.add(new TiZiiCoord(bullet.getCell()));
-                blockedCoords.add(new TiZiiCoord(bullet.getCell().getAdjacentCell(bullet.getMovementDirection())));
+                playerAndBullets.add(new TiZiiCoords(bullet.getCell()));
+                blockedCoords.add(new TiZiiCoords(bullet.getCell().getAdjacentCell(bullet.getMovementDirection())));
             }
         }
     }
@@ -126,7 +128,7 @@ public class AlliesInfo {
             Cell cellInDir = cell.getAdjacentCell(pair.direction);
             if (!TiZiiUtils.inRange(iii,jjj) || (cellInDir != null && cellInDir.getPlayerInside() != null)
                     || staticsInfo.mBoard[iii][jjj] == StaticsInfo.Consts.BLOCK
-                    || blockedCoords.contains(new TiZiiCoord(cellInDir))){
+                    || blockedCoords.contains(new TiZiiCoords(cellInDir))){
                 pair.score += Consts.BLOCK_SCORE;
             }
 

@@ -55,9 +55,10 @@
 * Mark Blind Points
 
 # Todos
-14. Implement Avoid Bullets function.
+14. Fix Spy Logic Code. (Doesn't Hide Correctly)
 15. Kill Hunter on the Gold Strategy.
 16. Edge Cells BFS.
+
 
 # Done
 00. Create Git Repository
@@ -74,3 +75,4 @@
 11. Define a new table for locations that discovered for gold.
 12. Simple Gold Discovery Walk Using BFS.
 13. Code Hunter Logic (go Hunt).
+14. Implement Avoid Bullets function.

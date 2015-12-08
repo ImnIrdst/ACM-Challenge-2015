@@ -1,10 +1,9 @@
 package client.java.teamclient;
 
 import client.java.teamclient.TiZiiClasses.DistanceDirectionPair;
-import client.java.teamclient.TiZiiClasses.TiZiiCoord;
+import client.java.teamclient.TiZiiClasses.TiZiiCoords;
 import common.board.Board;
 import common.board.Cell;
-import common.board.Direction;
 import common.board.Gold;
 import common.player.GoldMiner;
 import common.player.Player;
@@ -24,9 +23,9 @@ public class StaticsInfo {
     public int[][] discoveredAreas;
     public TreeMap<Integer, DistanceDirectionPair>[][] goldBFSTable; // Maps GOLD id with Direction to it
     public TreeSet<Integer> goldBFSCalculated;            // All The Gold With BFS Calculated.
-    public TreeSet<TiZiiCoord> curGoldLocations;          // Current Locations that contains gold.
-    public TreeMap<Integer, TiZiiCoord> goldIdToCoordMap; // Maps Gold id with Coordination of it.
-    public TreeMap<TiZiiCoord, Integer> coordToGoldIdMap; // Maps Coordination with Gold id
+    public TreeSet<TiZiiCoords> curGoldLocations;          // Current Locations that contains gold.
+    public TreeMap<Integer, TiZiiCoords> goldIdToCoordMap; // Maps Gold id with Coordination of it.
+    public TreeMap<TiZiiCoords, Integer> coordToGoldIdMap; // Maps Coordination with Gold id
 
     public Board gameBoard;
     public AlliesInfo alliesInfo;
@@ -60,7 +59,7 @@ public class StaticsInfo {
         // Processing New Golds.
         curGoldLocations = new TreeSet<>();          // Current Cycle Visible Golds.
         for (Gold gold : golds){
-	        TiZiiCoord coord = new TiZiiCoord(gold.getCell());
+	        TiZiiCoords coord = new TiZiiCoords(gold.getCell());
             curGoldLocations.add(coord);
             goldIdToCoordMap.put(gold.getId(), coord);
             coordToGoldIdMap.put(coord, gold.getId());
@@ -75,7 +74,7 @@ public class StaticsInfo {
 	        Integer assignedMiner = null;
 	        for (Player miner : players){
 				if (miner instanceof GoldMiner){
-					TiZiiCoord minerCoords = new TiZiiCoord(miner.getCell());
+					TiZiiCoords minerCoords = new TiZiiCoords(miner.getCell());
 					DistanceDirectionPair pair = goldBFSTable[minerCoords.i][minerCoords.j].get(gold.getId());
 					if (pair != null && pair.distance < minDist
 							&& !alliesInfo.assignedPlayerToGold.containsKey(miner.getId())){
@@ -90,7 +89,7 @@ public class StaticsInfo {
         }
 
         // Remove Digged Golds.
-        for (TiZiiCoord coord : alliesInfo.curAroundCells){
+        for (TiZiiCoords coord : alliesInfo.curAroundCells){
             int i = coord.i, j = coord.j;
             if (coordToGoldIdMap.containsKey(coord)
                     && mBoard[i][j] == Consts.GOLD

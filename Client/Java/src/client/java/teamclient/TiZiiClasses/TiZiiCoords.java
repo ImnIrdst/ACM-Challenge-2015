@@ -6,20 +6,20 @@ import common.board.Cell;
  * Created by iman on 12/3/15.
  * Simple (i, j) Coord on the map. (Comparable).
  */
-public class TiZiiCoord implements Comparable<TiZiiCoord>{
+public class TiZiiCoords implements Comparable<TiZiiCoords>{
     public int i;
     public int j;
 
-    public TiZiiCoord(int i, int j) {
+    public TiZiiCoords(int i, int j) {
         this.i = i;
         this.j = j;
     }
 
-    public TiZiiCoord(Cell cell){
+    public TiZiiCoords(Cell cell){
         this.i = cell.getRowNumber();
         this.j = cell.getColumnNumber();
     }
-    public TiZiiCoord(TiZiiCoord coord){
+    public TiZiiCoords(TiZiiCoords coord){
         this.i = coord.i;
         this.j = coord.j;
     }
@@ -31,13 +31,13 @@ public class TiZiiCoord implements Comparable<TiZiiCoord>{
 
     @Override
     public boolean equals(Object obj) {
-        TiZiiCoord a = this, b = (TiZiiCoord)obj;
+        TiZiiCoords a = this, b = (TiZiiCoords)obj;
         return a.i == b.j && a.j == b.j;
     }
 
     @Override
-    public int compareTo(TiZiiCoord b) {
-        TiZiiCoord a = this;
+    public int compareTo(TiZiiCoords b) {
+        TiZiiCoords a = this;
         if (a.i != b.i) return Integer.compare(a.i, b.i);
         else            return Integer.compare(a.j, b.j);
     }
