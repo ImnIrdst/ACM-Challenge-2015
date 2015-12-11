@@ -1,6 +1,7 @@
 package client.java.teamclient.TiZiiClasses;
 
 import common.board.Cell;
+import common.board.Direction;
 
 /**
  * Created by iman on 12/3/15.
@@ -24,6 +25,10 @@ public class TiZiiCoords implements Comparable<TiZiiCoords>{
         this.j = coord.j;
     }
 
+    public TiZiiCoords adjacent(Direction direction) {
+        return new TiZiiCoords(i + direction.getDeltaRow(), j + direction.getDeltaCol());
+    }
+
     @Override
     public String toString() {
         return "(" + i + "," + j + ")";
@@ -41,4 +46,6 @@ public class TiZiiCoords implements Comparable<TiZiiCoords>{
         if (a.i != b.i) return Integer.compare(a.i, b.i);
         else            return Integer.compare(a.j, b.j);
     }
+
+
 }

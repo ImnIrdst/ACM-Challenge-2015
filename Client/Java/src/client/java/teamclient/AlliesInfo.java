@@ -26,10 +26,11 @@ public class AlliesInfo {
     public StaticsInfo staticsInfo;
 	public ArrayList<Player> myPlayers;
     public HashMap<Integer, StepsInDirection> prevDirections;       // for calculating FORWARD_SCORE.
-    public TreeSet<TiZiiCoords> blockedCoords;                       // for avoiding collisions and my Bullets.
-    public TreeSet<TiZiiCoords> playerAndBullets;                    // for detecting block cells
-    public TreeSet<TiZiiCoords> curAroundCells;                   // for removing golds
+    public TreeSet<TiZiiCoords> blockedCoords;                      // for avoiding collisions and my Bullets.
+    public TreeSet<TiZiiCoords> playerAndBullets;                   // for detecting block cells
+    public TreeSet<TiZiiCoords> curAroundCells;                     // for removing golds
     public TreeSet<Integer> prevPlayers;                            // for finding dead players.
+	public TreeSet<Integer> idlePlayers;                            // for assigning discovery tasks.
     //public TreeSet<Integer> deadPlayers;                          // not Needed Now.
 
     public TreeMap<Integer, Integer> assignedGoldToPlayer;          // Maps Each Gold to a player
@@ -43,6 +44,7 @@ public class AlliesInfo {
         this.prevDirections = new HashMap<>();
         this.assignedGoldToPlayer = new TreeMap<>();
         this.assignedPlayerToGold = new TreeMap<>();
+
     }
 
     /**
@@ -54,15 +56,15 @@ public class AlliesInfo {
     public void updateAlliesInfo(ArrayList<Player> myPlayers, ArrayList<Player> enemyPlayers, ArrayList<Bullet> bullets){
         this.blockedCoords = new TreeSet<>();
         this.playerAndBullets = new TreeSet<>();
-        this.curAroundCells = new TreeSet<>();
+        this.curAroundCells = new TreeSet<>(); // TODO: Not Used. Must Be Removed.
 		this.myPlayers = myPlayers;
         // process my current players
         TreeSet<Integer> curPlayers = new TreeSet<>();
         for (Player player : myPlayers){
             curPlayers.add(player.getId());
             blockedCoords.add(new TiZiiCoords(player.getCell()));
-            playerAndBullets.add(new TiZiiCoords(player.getCell()));
-            for (Cell cell : player.getCell().getAroundCells()){
+            playerAndBullets.add(new TiZiiCoords(player.getCell())); // TODO: Not Used. Must Be Removed.
+            for (Cell cell : player.getCell().getAroundCells()){     // TODO: Not Used. Must Be Removed.
                 curAroundCells.add(new TiZiiCoords(cell));
             }
         }
@@ -82,7 +84,7 @@ public class AlliesInfo {
 
         // add enemy players to player and bullets to avoid those.
         for (Player player : enemyPlayers){
-            playerAndBullets.add(new TiZiiCoords(player.getCell()));
+            playerAndBullets.add(new TiZiiCoords(player.getCell())); // TODO: Not Used. Must Be Removed.
 	        if (player instanceof Hunter) {
 		        for (Cell cell : player.getAheadCells()){
 			        blockedCoords.add(new TiZiiCoords(cell));
@@ -92,10 +94,19 @@ public class AlliesInfo {
 
         for (Bullet bullet : bullets) {
             if (bullet.getCell().getAdjacentCell(bullet.getMovementDirection()) != null) {
-                playerAndBullets.add(new TiZiiCoords(bullet.getCell()));
+                playerAndBullets.add(new TiZiiCoords(bullet.getCell())); // TODO: Not Used. Must Be Removed.
                 blockedCoords.add(new TiZiiCoords(bullet.getCell().getAdjacentCell(bullet.getMovementDirection())));
             }
         }
+
+
+	    idlePlayers = new TreeSet<>();
+	    for (Player player : myPlayers){
+		    if (!assignedPlayerToGold.containsKey(player.getId())
+				    && !staticsInfo.assignedPlayerToDiscoveryTarget.containsKey(player.getId())){
+			    idlePlayers.add(player.getId());
+		    }
+	    }
     }
 
 	/**
@@ -201,7 +212,7 @@ public class AlliesInfo {
         }
         return cnt;
     }
-
+    // TODO: Comment.
 	public boolean noAlliesInsight(Hunter hunter) {
 		for (Cell cell : hunter.getAheadCells()){
 			Player playerInside = cell.getPlayerInside();

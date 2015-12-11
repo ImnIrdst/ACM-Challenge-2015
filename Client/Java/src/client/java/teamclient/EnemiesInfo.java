@@ -47,7 +47,6 @@ public class EnemiesInfo {
      * @param spies   list of enemy spies
      * @param bullets list of bullets in the Map
      */
-    // TODO: Doesn't Work Correctly Spy Doesn't Hide Correctly.
     public void updateEnemyBoard(ArrayList<Hunter> hunters, ArrayList<GoldMiner> miners,
                                  ArrayList<Spy> spies, ArrayList<Bullet> bullets) {
         // add enemy players
@@ -68,7 +67,7 @@ public class EnemiesInfo {
 //                } else if (mBoard[i][j] == Consts.UNSEEN && staticsInfo.mBoard[i][j] == Consts.EMPTY){  // updates unseen cells
 //                    mBoard[i][j] = Consts.EMPTY;
 //                } else if (mBoard[i][j] == Consts.UNSEEN && staticsInfo.mBoard[i][j] == Consts.BLOCK){  // updates unseen cells
-//                    mBoard[i][j] = Consts.BLOCK;
+//                    mBoard[i][j] = Consts.BLOCK; // TODO: Maybe Must Be UnCommented.
 //                }
             }
         }
@@ -93,10 +92,9 @@ public class EnemiesInfo {
 		    TiZiiBullet tBullet = new TiZiiBullet(bullet);
 
 		    int time = 0;
-		    for (Cell cell = tBullet.cell ; cell != null ; cell = cell.getAdjacentCell(tBullet.direction)){
-				int i = cell.getRowNumber();
-			    int j = cell.getColumnNumber();
-			    bulletHitTime[i][j].put(tBullet, time);
+		    for (TiZiiCoords coords = new TiZiiCoords(tBullet.cell) ;
+		         TiZiiUtils.inRange(coords.i, coords.j) ; coords = coords.adjacent(tBullet.direction)){
+			    bulletHitTime[coords.i][coords.j].put(tBullet, time);
 			    time++;
 		    }
 	    }
@@ -139,10 +137,15 @@ public class EnemiesInfo {
         for(int i=row-Consts.DANGER_RADIUS; i<=row+Consts.DANGER_RADIUS; i++){
             for(int j=col-Consts.DANGER_RADIUS; j<col+Consts.DANGER_RADIUS; j++){
                 if (!TiZiiUtils.inRange(i, j)) continue; // TODO: Add more details
-	            if (TiZiiUtils.isLoggingEnabled && TiZiiUtils.needed) System.out.print((mBoard[i][j] < 10 ? "0" :"") + mBoard[i][j] + " ");
                 if (Consts.isHUNTER_OR_SHADOW(mBoard[i][j])) return true;
             }
-	        if (TiZiiUtils.isLoggingEnabled && TiZiiUtils.needed) System.out.println();
+            if (TiZiiUtils.isLoggingEnabled && TiZiiUtils.notNeeded) {
+                for (int j = col - Consts.DANGER_RADIUS; j < col + Consts.DANGER_RADIUS; j++) {
+	                if (!TiZiiUtils.inRange(i, j)) continue;
+                    System.out.print((mBoard[i][j] < 10 ? "0" : "") + mBoard[i][j] + " ");
+                }
+                System.out.println();
+            }
         }
         return false;
     }

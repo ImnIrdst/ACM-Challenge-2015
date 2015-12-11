@@ -42,7 +42,7 @@ public class TiZiiUtils {
      * @param isClearing defines phase of the bfs.
      */
     public static void BFS(Integer itemId, TiZiiCoords itemCoords, TreeMap[][] bfsTable, boolean isClearing){
-        staticsInfo.goldBFSCalculated.add(itemId);
+        //staticsInfo.goldBFSCalculated.add(itemId);
 
         TiZiiCoords s = itemCoords;
         Queue<TiZiiCoords> q = new LinkedList<>();
@@ -56,19 +56,44 @@ public class TiZiiUtils {
             TiZiiCoords u = q.poll();
             for (Direction dir : Direction.values()){
                 TiZiiCoords v = new TiZiiCoords(u.i + dir.getDeltaRow(), u.j + dir.getDeltaCol());
-                if (TiZiiUtils.inRange(v.i, v.j) && vis[v.i][v.j] < 0 && staticsInfo.mBoard[v.i][v.j] == StaticsInfo.Consts.EMPTY){
-                    q.add(v); vis[v.i][v.j] = vis[u.i][u.j] + 1;
+	            if (TiZiiUtils.inRange(v.i, v.j) && vis[v.i][v.j] < 0 && staticsInfo.mBoard[v.i][v.j] == StaticsInfo.Consts.EMPTY) {
+		            q.add(v);
+		            vis[v.i][v.j] = vis[u.i][u.j] + 1;
 
-                    if (!isClearing)
-                        bfsTable[v.i][v.j].put(itemId,
-                                new DistanceDirectionPair(vis[v.i][v.j],
-                                        TiZiiUtils.getReverseDirection(dir))); // TODO: There Is A Bug in This. prints D Without Down Cell.
-                    else
-                        bfsTable[v.i][v.j].remove(itemId);
-                }
+		            if (!isClearing)
+			            bfsTable[v.i][v.j].put(itemId,
+					            new DistanceDirectionPair(vis[v.i][v.j],
+							            TiZiiUtils.getReverseDirection(dir))); // TODO: There Is A Bug in This. prints D Without Down Cell.
+		            else
+			            bfsTable[v.i][v.j].remove(itemId);
+	            }
             }
         }
     }
+
+	public static boolean canReach(TiZiiCoords s, TiZiiCoords t){
+		//staticsInfo.goldBFSCalculated.add(itemId);
+
+		Queue<TiZiiCoords> q = new LinkedList<>();
+
+		int[][] vis = new int[rows][cols];
+		for (int i=0 ; i<rows ; i++) Arrays.fill(vis[i], -1);
+
+		q.add(s); vis[s.i][s.j] = 0;
+
+		while (!q.isEmpty()){
+			TiZiiCoords u = q.poll();
+			for (Direction dir : Direction.values()){
+				TiZiiCoords v = new TiZiiCoords(u.i + dir.getDeltaRow(), u.j + dir.getDeltaCol());
+				if (TiZiiUtils.inRange(v.i, v.j) && vis[v.i][v.j] < 0 && staticsInfo.mBoard[v.i][v.j] == StaticsInfo.Consts.EMPTY) {
+					q.add(v);
+					vis[v.i][v.j] = vis[u.i][u.j] + 1;
+					if (v.equals(t)) return true;
+				}
+			}
+		}
+		return false;
+	}
 
     public static int getRandomNumber(int x){
         Random rand;
@@ -103,12 +128,12 @@ public class TiZiiUtils {
 		return Direction.LEFT;
 	}
 
-    public static boolean inRange(int i, int j) {
-        return (i<rows && i>=0 && j<cols && j>=0);
+    public static int manhattanDistance(TiZiiCoords a, TiZiiCoords b){
+	    return Math.abs(a.i - b.i) + Math.abs(a.j - b.j);
     }
 
-    public static void log(String string){
-        if (isLoggingEnabled) System.out.println(string);
+    public static boolean inRange(int i, int j) {
+        return (i<rows && i>=0 && j<cols && j>=0);
     }
 
     public static void printBoard(int[][] a, String title){
@@ -132,10 +157,11 @@ public class TiZiiUtils {
         System.out.println();
     }
 
-    public static void printGoldBfsDirections(TreeMap[][] a, String title) {
+    public static void printGoldBfsDirections(TreeMap[][] a, TreeMap<Integer, TiZiiCoords> keys, String title) {
         System.out.println(title);
-        for (Integer key: staticsInfo.goldIdToCoordMap.keySet()) {
-            for (TreeMap[] ai : staticsInfo.goldBFSTable) {
+        for (Integer key: keys.keySet()) {
+	        System.out.println(keys.get(key));
+            for (TreeMap[] ai : a) {
                 for (TreeMap aij : ai) {
                     String str = "" + aij.get(key);
 	                while (str.length() < 6) str+=" ";
@@ -175,7 +201,8 @@ public class TiZiiUtils {
     }
 
     public static class Consts{
-        public static final int BFS_RADIUS = 10;
+        public static final int BFS_RADIUS = 10; // TODO: Not Used.
+	    public static final int MANHATAN_DISTANCE = Math.min(rows, cols)/2;
         public static final boolean isLogginEnabled = true;
     }
 }

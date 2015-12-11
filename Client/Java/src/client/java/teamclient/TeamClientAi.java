@@ -46,12 +46,14 @@ public class TeamClientAi extends ClientGame {
 
         // logging
         if (TiZiiUtils.isLoggingEnabled && TiZiiUtils.needed)          System.out.println(staticsInfo);
-        if (TiZiiUtils.isLoggingEnabled && TiZiiUtils.needed)          System.out.println(enemiesInfo);
+        if (TiZiiUtils.isLoggingEnabled && TiZiiUtils.notNeeded)          System.out.println(enemiesInfo);
         if (TiZiiUtils.isLoggingEnabled && TiZiiUtils.notNeeded)       TiZiiUtils.printBoard(gameBoard.getCells(), "Not Null Cells");
         if (TiZiiUtils.isLoggingEnabled && TiZiiUtils.notNeeded)       TiZiiUtils.printBoard(staticsInfo.goldBFSTable, "Gold BFS TABLE");
-        if (TiZiiUtils.isLoggingEnabled && TiZiiUtils.notNeeded)       TiZiiUtils.printGoldBfsDirections(staticsInfo.goldBFSTable, "Gold BFS Directions");
-        if (TiZiiUtils.isLoggingEnabled && TiZiiUtils.notNeeded)       TiZiiUtils.printBoard(staticsInfo.discoveredAreas, "Discovered Areas.");
+	    if (TiZiiUtils.isLoggingEnabled && TiZiiUtils.notNeeded)       TiZiiUtils.printGoldBfsDirections(staticsInfo.discoveryBFSTable, staticsInfo.discoveryIdToCoords, "Discovery BFS Directions");
+	    if (TiZiiUtils.isLoggingEnabled && TiZiiUtils.notNeeded)       TiZiiUtils.printGoldBfsDirections(staticsInfo.goldBFSTable, staticsInfo.goldIdToCoordMap, "Gold BFS Directions");
+        if (TiZiiUtils.isLoggingEnabled && TiZiiUtils.needed)       TiZiiUtils.printBoard(staticsInfo.discoveredAreas, "Discovered Areas.");
 	    if (TiZiiUtils.isLoggingEnabled && TiZiiUtils.notNeeded)       TiZiiUtils.printBulletsHitTime(getBullets(), "Bullets Hit Time");
+
 
         // Game Logic.
         ArrayList<GoldMiner> goldMiners = getMyGoldMiners();
@@ -61,6 +63,35 @@ public class TeamClientAi extends ClientGame {
 	    for (Hunter hunter : hunters)       hunterLogic(hunter);    // Must Come Before Miners and Spies
 	    for (GoldMiner miner : goldMiners)  minerLogic(miner);
         for (Spy spy : spies)               spyLogic(spy);
+
+
+	    // log targets
+	    if (TiZiiUtils.isLoggingEnabled && TiZiiUtils.needed) {
+		    for (Hunter hunter : hunters) {
+			    System.out.print("Hunter " + new TiZiiCoords(hunter.getCell()) + ":\t\t");
+			    if (staticsInfo.assignedPlayerToDiscoveryTarget.containsKey(hunter.getId())) {
+				    System.out.println(staticsInfo.assignedPlayerToDiscoveryTarget.get(hunter.getId()) + " Discovery");
+			    } else System.out.println("Not Assigned");
+			    System.out.println();
+		    }
+		    for (GoldMiner miner : goldMiners) {
+			    System.out.print("Miner " + new TiZiiCoords(miner.getCell()) + ":\t\t");
+			    if (staticsInfo.assignedPlayerToDiscoveryTarget.containsKey(miner.getId())) {
+				    System.out.println(staticsInfo.assignedPlayerToDiscoveryTarget.get(miner.getId()) + " Discovery");
+			    } else if (alliesInfo.assignedPlayerToGold.containsKey(miner.getId())) {
+				    System.out.println(staticsInfo.goldIdToCoordMap.get(alliesInfo.assignedPlayerToGold.get(miner.getId())) + " Gold");
+			    } else System.out.println("Not Assigned");
+			    System.out.println();
+		    }
+		    for (Spy spy : spies) {
+			    System.out.print("Spy " + new TiZiiCoords(spy.getCell()) + ":\t\t");
+			    if (staticsInfo.assignedPlayerToDiscoveryTarget.containsKey(spy.getId())) {
+				    System.out.println(staticsInfo.assignedPlayerToDiscoveryTarget.get(spy.getId()) + " Discovery");
+			    } else System.out.println("Not Assigned");
+			    System.out.println();
+		    }
+		    System.out.println();
+	    }
     }
 
     /**
@@ -76,6 +107,7 @@ public class TeamClientAi extends ClientGame {
             staticsInfo.alliesInfo = alliesInfo;
             TiZiiUtils.rows = gameBoard.getNumberOfRows();
             TiZiiUtils.cols = gameBoard.getNumberOfColumns();
+	        TiZiiUtils.update(alliesInfo);
             System.out.println("Initialized :D");
         } else {
             staticsInfo.gameBoard = gameBoard;
@@ -103,7 +135,7 @@ public class TeamClientAi extends ClientGame {
                 DistanceDirectionPair pair = staticsInfo.goldBFSTable[u.i][u.j].get(assignedGold);
 	            if (pair != null) moveOrRotate(miner, pair.direction); // TODO: Null Pointer Exception.
 	            else              randomMove(miner);                   // TODO: This maybe fixed doe to considering neighboring cells.
-            } else { // else pick the not assigned nearest target.
+            } else if (alliesInfo.idlePlayers.contains(miner.getId())){ // else pick the not assigned nearest target.
                 DistanceDirectionPair minDistPair = null; assignedGold = null;
                 for (Integer goldId : staticsInfo.goldBFSTable[u.i][u.j].keySet()){
                     DistanceDirectionPair pair = staticsInfo.goldBFSTable[u.i][u.j].get(goldId);
@@ -117,11 +149,9 @@ public class TeamClientAi extends ClientGame {
 	                alliesInfo.assignedGoldToPlayer.put(assignedGold, miner.getId());
                     moveOrRotate(miner, minDistPair.direction);
                 } else { // miner discovery move.
-	                DirectionScorePair[] scorePair = alliesInfo.getDiscoveryMovementScores(miner);
-	                Arrays.sort(scorePair);
-	                tiziiMove(miner, scorePair);
+					discoveryMove(miner);
                 }
-            }
+            } else discoveryMove(miner);
         }
         // else just mine;
     }
@@ -144,7 +174,7 @@ public class TeamClientAi extends ClientGame {
 	        // discovery move.
 	        DirectionScorePair[] scorePair = alliesInfo.getDiscoveryMovementScores(hunter);
 	        Arrays.sort(scorePair);
-	        tiziiMove(hunter, scorePair);
+	        scoreMove(hunter, scorePair);
         }
     }
 
@@ -153,7 +183,7 @@ public class TeamClientAi extends ClientGame {
      * Runs per each spy.
      */
     private void spyLogic(Spy spy) {
-	    System.out.println("Spy : " + spy.isHidden());
+	    //System.out.println("Spy : " + spy.isHidden());
 	    if (enemiesInfo.isInRangeOfBullets(spy)){
 		    avoidBullets(spy); return;
 	    }
@@ -165,7 +195,7 @@ public class TeamClientAi extends ClientGame {
         }
 
         DirectionScorePair[] scorePair = alliesInfo.getDiscoveryMovementScores(spy);
-        tiziiMove(spy, scorePair);
+        scoreMove(spy, scorePair);
     }
 
 	/**
@@ -204,11 +234,78 @@ public class TeamClientAi extends ClientGame {
     }
 
 	/**
+	 * Discovery Move for Player.
+	 * @param player that must move.
+	 */
+	private void discoveryMove(Player player){
+		TiZiiCoords u = new TiZiiCoords(player.getCell());
+		TiZiiCoords assignedTarget = staticsInfo.assignedPlayerToDiscoveryTarget.get(player.getId());
+		if (assignedTarget != null){
+			int id = staticsInfo.discoveryCoordsToId.get(assignedTarget);
+			DistanceDirectionPair pair = staticsInfo.discoveryBFSTable[u.i][u.j].get(id);
+			if (pair != null) moveOrRotate(player, pair.direction); // TODO: Null Pointer Exception.
+			else              randomMove(player);                   // TODO: This maybe fixed doe to considering neighboring cells.
+		} else { // assign new target.
+			Integer minDist = (int) 1e8;
+			TiZiiCoords assignedCoords = null;
+			TiZiiCoords playerCoords = new TiZiiCoords(player.getCell());
+			for (int i = 0; i < staticsInfo.rows; i++) {
+				for (int j = 0; j < staticsInfo.cols; j++) {
+					TiZiiCoords thisCoords = new TiZiiCoords(i, j);
+					if (staticsInfo.discoveredAreas[i][j] > 0) continue;
+					if (staticsInfo.assignedDiscoveryTargetToPlayer.containsKey(thisCoords)) continue;
+
+					boolean isEdgeCell = false;
+					for (int ii = i - 1; ii <= i + 1; ii++) {
+						for (int jj = j - 1; jj <= j + 1; jj++) {
+							if (!TiZiiUtils.inRange(ii, jj)) continue;
+							if (staticsInfo.discoveredAreas[ii][jj] != StaticsInfo.Consts.UNSEEN
+									&& staticsInfo.discoveredAreas[ii][jj] != StaticsInfo.Consts.BLOCK)
+								isEdgeCell = true;
+						}
+					}
+
+					if (isEdgeCell) {
+						if (minDist > TiZiiUtils.manhattanDistance(playerCoords, thisCoords)
+								&& TiZiiUtils.canReach(thisCoords, playerCoords)) {
+							minDist = TiZiiUtils.manhattanDistance(playerCoords, thisCoords);
+							assignedCoords = thisCoords;
+						}
+					}
+				}
+
+			}
+
+			if (assignedCoords != null) {
+				int id; // Assign Id To Coord
+				for (id = 0; true; id++) {
+					if (!staticsInfo.discoveryIdToCoords.containsKey(id)) {
+						staticsInfo.discoveryIdToCoords.put(id, assignedCoords);
+						staticsInfo.discoveryCoordsToId.put(assignedCoords, id);
+						break;
+					}
+				}
+				TiZiiUtils.BFS(id, assignedCoords, staticsInfo.discoveryBFSTable, false);
+
+				staticsInfo.assignedDiscoveryTargetToPlayer.put(assignedCoords, player.getId());
+				staticsInfo.assignedPlayerToDiscoveryTarget.put(player.getId(), assignedCoords);
+				alliesInfo.idlePlayers.remove(player.getId());
+
+				discoveryMove(player); // call recursively after assigned to a target.
+			} else {
+				DirectionScorePair[] scorePair = alliesInfo.getDiscoveryMovementScores(player);
+				Arrays.sort(scorePair);
+				scoreMove(player, scorePair);
+			}
+		}
+	}
+
+	/**
 	 * Move Player To a Direction With Highest Score. (Includes Some Randomness).
 	 * @param player that needs to move.
 	 * @param scorePairs Array DirectionScorePair that Contain Score for Each Player.
 	 */
-    private void tiziiMove(Player player, DirectionScorePair[] scorePairs) {
+    private void scoreMove(Player player, DirectionScorePair[] scorePairs) {
         Arrays.sort(scorePairs);
 
         boolean isFirst = true;
@@ -267,8 +364,8 @@ public class TeamClientAi extends ClientGame {
     }
 
     private void randomMove(Player player){
-        int rand = TiZiiUtils.getRandomNumber(40);
-        if (rand < 35 && canGo(player, player.getMovementDirection())) {
+        int rand = TiZiiUtils.getRandomNumber(100);
+        if (rand <= 95 && canGo(player, player.getMovementDirection())) {
             move(player);
 	        TiZiiCoords nextCoords = new TiZiiCoords(player.getCell().getAdjacentCell(player.getMovementDirection()));
 	        alliesInfo.blockedCoords.add(nextCoords);
