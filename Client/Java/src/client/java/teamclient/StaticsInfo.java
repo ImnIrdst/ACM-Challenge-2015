@@ -2,7 +2,6 @@ package client.java.teamclient;
 
 import client.java.teamclient.TiZiiClasses.DistanceDirectionPair;
 import client.java.teamclient.TiZiiClasses.TiZiiCoords;
-import com.sun.xml.internal.bind.v2.runtime.reflect.opt.Const;
 import common.board.Board;
 import common.board.Cell;
 import common.board.Gold;
@@ -128,8 +127,11 @@ public class StaticsInfo {
                 coordToGoldIdMap.remove(coord); mBoard[i][j] = Consts.EMPTY;
 
 	            Integer playerId = alliesInfo.assignedGoldToPlayer.get(goldId);
-	            alliesInfo.assignedPlayerToGold.remove(playerId);
-	            alliesInfo.assignedGoldToPlayer.remove(goldId);
+	            if (playerId != null){
+		            alliesInfo.assignedPlayerToGold.remove(playerId);
+		            alliesInfo.assignedGoldToPlayer.remove(goldId);
+	            }
+
 
 	            discoveredAreas[coord.i][coord.j] = Consts.EMPTY;
             }
@@ -151,6 +153,7 @@ public class StaticsInfo {
 					if (cell.getType().isBlock())
 						 discoveredAreas[cell.getRowNumber()][cell.getColumnNumber()] = Consts.BLOCK;
 					else discoveredAreas[cell.getRowNumber()][cell.getColumnNumber()] = Consts.EMPTY;
+
 					TiZiiCoords coords = new TiZiiCoords(cell);
 					if (discoveryCoordsToId.containsKey(coords)){
 						int targetId = discoveryCoordsToId.get(coords);   // Clearing BFS and All Assignments.
@@ -161,6 +164,13 @@ public class StaticsInfo {
 						assignedPlayerToDiscoveryTarget.remove(playerId);
 						alliesInfo.idlePlayers.add(playerId);
 						TiZiiUtils.BFS(targetId, coords, discoveryBFSTable, true);
+					}
+					// TODO: Weird.
+					if (assignedDiscoveryTargetToPlayer.containsKey(coords)){
+						int playerId = assignedDiscoveryTargetToPlayer.get(coords);
+						assignedDiscoveryTargetToPlayer.remove(coords);
+						assignedPlayerToDiscoveryTarget.remove(playerId);
+						alliesInfo.idlePlayers.add(playerId);
 					}
 				}
 		    }
@@ -190,7 +200,7 @@ public class StaticsInfo {
 			    if (isEdgeCell){
 				    boolean isHigherThanManhattan = true;
 				    for (TiZiiCoords coords : discoveryCoordsToId.keySet()){
-						if (TiZiiUtils.manhattanDistance(thisCoords, coords) < TiZiiUtils.Consts.MANHATAN_DISTANCE){
+						if (TiZiiUtils.manhattanDistance(thisCoords, coords) < TiZiiUtils.Consts.MANHATTAN_DISTANCE){
 							isHigherThanManhattan = false;
 						}
 				    }
@@ -204,9 +214,7 @@ public class StaticsInfo {
 							    break;
 						    }
 					    }
-					    //if (TiZiiUtils.isLoggingEnabled && TiZiiUtils.needed)          System.out.println(this);
-					    TiZiiUtils.BFS(discoveryCoordsToId.get(thisCoords), thisCoords, discoveryBFSTable, false);
-					    //if (TiZiiUtils.isLoggingEnabled && TiZiiUtils.needed)       TiZiiUtils.printGoldBfsDirections(discoveryBFSTable, discoveryIdToCoords, "Discovery BFS Directions");
+					    TiZiiUtils.BFS(id, thisCoords, discoveryBFSTable, false);
 
 					    Integer minDist = (int)1e8;
 					    Integer assignedPlayer = null;
@@ -225,6 +233,7 @@ public class StaticsInfo {
 						    assignedPlayerToDiscoveryTarget.put(assignedPlayer, thisCoords);
 						    alliesInfo.idlePlayers.remove(assignedPlayer);
 					    } else { // cannot be assigned.
+						    TiZiiUtils.BFS(discoveryCoordsToId.get(thisCoords), thisCoords, discoveryBFSTable, true);
 						    discoveryIdToCoords.remove(id);
 						    discoveryCoordsToId.remove(thisCoords);
 					    }

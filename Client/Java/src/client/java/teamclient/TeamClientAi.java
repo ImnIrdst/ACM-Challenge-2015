@@ -42,6 +42,7 @@ public class TeamClientAi extends ClientGame {
         alliesInfo.updateAlliesInfo(getMyPlayers(), getOpponentPlayers(), getBullets()); // must use this before updating staticsBoard
         staticsInfo.updateStaticBoard(getGolds(), getMyPlayers());
         enemiesInfo.updateEnemyBoard(getOpponentHunters(), getOpponentGoldMiners(), getOpponentSpies(), getBullets());
+	    enemiesInfo.alliesInfo = alliesInfo;
         TiZiiUtils.update(alliesInfo);
 
         // logging
@@ -51,8 +52,8 @@ public class TeamClientAi extends ClientGame {
         if (TiZiiUtils.isLoggingEnabled && TiZiiUtils.notNeeded)       TiZiiUtils.printBoard(staticsInfo.goldBFSTable, "Gold BFS TABLE");
 	    if (TiZiiUtils.isLoggingEnabled && TiZiiUtils.notNeeded)       TiZiiUtils.printGoldBfsDirections(staticsInfo.discoveryBFSTable, staticsInfo.discoveryIdToCoords, "Discovery BFS Directions");
 	    if (TiZiiUtils.isLoggingEnabled && TiZiiUtils.notNeeded)       TiZiiUtils.printGoldBfsDirections(staticsInfo.goldBFSTable, staticsInfo.goldIdToCoordMap, "Gold BFS Directions");
-        if (TiZiiUtils.isLoggingEnabled && TiZiiUtils.needed)       TiZiiUtils.printBoard(staticsInfo.discoveredAreas, "Discovered Areas.");
-	    if (TiZiiUtils.isLoggingEnabled && TiZiiUtils.notNeeded)       TiZiiUtils.printBulletsHitTime(getBullets(), "Bullets Hit Time");
+        if (TiZiiUtils.isLoggingEnabled && TiZiiUtils.notNeeded)       TiZiiUtils.printBoard(staticsInfo.discoveredAreas, "Discovered Areas.");
+	    if (TiZiiUtils.isLoggingEnabled && TiZiiUtils.needed)       TiZiiUtils.printBulletsHitTime(getBullets(), "Bullets Hit Time");
 
 
         // Game Logic.
@@ -65,7 +66,7 @@ public class TeamClientAi extends ClientGame {
         for (Spy spy : spies)               spyLogic(spy);
 
 
-	    // log targets
+	    // log targets.
 	    if (TiZiiUtils.isLoggingEnabled && TiZiiUtils.needed) {
 		    for (Hunter hunter : hunters) {
 			    System.out.print("Hunter " + new TiZiiCoords(hunter.getCell()) + ":\t\t");
@@ -91,6 +92,10 @@ public class TeamClientAi extends ClientGame {
 			    System.out.println();
 		    }
 		    System.out.println();
+	    }
+	    // log score.
+	    if (TiZiiUtils.isLoggingEnabled && TiZiiUtils.needed){
+		    System.out.println("TiZii: " + getMyScore() + ", Opponent: " + getOpponentScore());
 	    }
     }
 
@@ -122,9 +127,8 @@ public class TeamClientAi extends ClientGame {
      * Runs per each miner.
      */
     private void minerLogic(GoldMiner miner) {
-	    if (enemiesInfo.isInRangeOfBullets(miner)){
-		    avoidBullets(miner); return;
-	    }
+	    boolean moved = highPriorityMoves(miner); if (moved) return;
+
         Gold gold = gameBoard.getGold(miner.getCell());
         if (gold == null) {
             TiZiiCoords u = new TiZiiCoords(miner.getCell());
@@ -135,7 +139,8 @@ public class TeamClientAi extends ClientGame {
                 DistanceDirectionPair pair = staticsInfo.goldBFSTable[u.i][u.j].get(assignedGold);
 	            if (pair != null) moveOrRotate(miner, pair.direction); // TODO: Null Pointer Exception.
 	            else              randomMove(miner);                   // TODO: This maybe fixed doe to considering neighboring cells.
-            } else if (alliesInfo.idlePlayers.contains(miner.getId())){ // else pick the not assigned nearest target.
+            } // else pick the not assigned nearest target.
+            else if (alliesInfo.idlePlayers.contains(miner.getId())){
                 DistanceDirectionPair minDistPair = null; assignedGold = null;
                 for (Integer goldId : staticsInfo.goldBFSTable[u.i][u.j].keySet()){
                     DistanceDirectionPair pair = staticsInfo.goldBFSTable[u.i][u.j].get(goldId);
@@ -161,21 +166,33 @@ public class TeamClientAi extends ClientGame {
      * Runs per each hunter.
      */
     private void hunterLogic(Hunter hunter) {
-	    if (enemiesInfo.isInRangeOfBullets(hunter)){
-		    avoidBullets(hunter); return;
+	    boolean moved = highPriorityMoves(hunter); if (moved) return;
+
+	    Direction avoidDirection = alliesInfo.isGoldOnSightAndMinerNearby(hunter);
+	    if (avoidDirection != null){
+		    randomMoveAndAvoidDirection(hunter, avoidDirection);
 	    }
-        if (hunter.getVisibleEnemy().size() > 0 && hunter.canAttack()
-		        && alliesInfo.noAlliesInsight(hunter)) {// can kill someone
+
+	    Integer burstFireNumber = alliesInfo.hunterBurstFire.get(hunter.getId());
+        if (enemiesInfo.isEnemyAhead(hunter) && hunter.canAttack()
+		        && alliesInfo.noAlliesInsight(hunter)
+		        && (burstFireNumber == null || burstFireNumber > AlliesInfo.Consts.BURST_QTY)) {// can kill someone
             fire(hunter);
+	        // burst fire condition.
+	        if (burstFireNumber == null){
+		        alliesInfo.hunterBurstFire.put(hunter.getId(), AlliesInfo.Consts.BURST_QTY * 2 - 1);
+	        }
+
 	        for (Cell cell : hunter.getAheadCells()){
 		        alliesInfo.blockedCoords.add(new TiZiiCoords(cell));
 	        }
         } else { // can not kill anyone
-	        // discovery move.
-	        DirectionScorePair[] scorePair = alliesInfo.getDiscoveryMovementScores(hunter);
-	        Arrays.sort(scorePair);
-	        scoreMove(hunter, scorePair);
+	        discoveryMove(hunter);
         }
+	    if (burstFireNumber != null){
+		    alliesInfo.hunterBurstFire.put(hunter.getId(), burstFireNumber - 1);
+		    if (burstFireNumber == 0) alliesInfo.hunterBurstFire.remove(hunter.getId());
+	    }
     }
 
     /**
@@ -184,21 +201,47 @@ public class TeamClientAi extends ClientGame {
      */
     private void spyLogic(Spy spy) {
 	    //System.out.println("Spy : " + spy.isHidden());
-	    if (enemiesInfo.isInRangeOfBullets(spy)){
-		    avoidBullets(spy); return;
+	    boolean moved = highPriorityMoves(spy); if (moved) return;
+
+	    Direction avoidDirection = alliesInfo.isGoldOnSightAndMinerNearby(spy);
+	    if (avoidDirection != null){
+		    randomMoveAndAvoidDirection(spy, avoidDirection);
 	    }
-        if (enemiesInfo.isEnemyHunterNearby(spy.getCell()) && !spy.isHidden()) {
+
+	    if (enemiesInfo.isEnemyHunterNearby(spy.getCell()) && !spy.isHidden()) {
 	        hide(spy); return;
         }
-        else if (spy.isHidden()){
+        if (spy.isHidden()){
 	        show(spy); return;
         }
-
-        DirectionScorePair[] scorePair = alliesInfo.getDiscoveryMovementScores(spy);
-        scoreMove(spy, scorePair);
+	    discoveryMove(spy);
     }
 
+
+
 	/**
+	 * high priority moves that each player must do before doing his duty.
+	 * @param player that must do this type of moves
+	 * @return true if player moves.
+	 */
+	private boolean highPriorityMoves(Player player){
+		// if player in range of bullets.
+		if (enemiesInfo.isInRangeOfBullets(player)){
+			avoidBullets(player); return true;
+		}
+		// if player avoided collision in prev cycle.
+		if (alliesInfo.collidedPlayer.contains(player.getId())
+				&& canGo(player, player.getMovementDirection())){
+			alliesInfo.collidedPlayer.remove(player.getId());
+			move(player); return true;
+		}
+		// try some randomness
+		int rand = TiZiiUtils.getRandomNumber(100);
+		if (rand > 90){ randomMove(player); return true; }
+
+		return false;
+	}
+	/**just avoid bullets.
 	 * @param player player that must avoid bullets
 	 */
     private void avoidBullets(Player player){
@@ -206,10 +249,10 @@ public class TeamClientAi extends ClientGame {
 	    TiZiiCoords tCoords = new TiZiiCoords(player.getCell());
 	    TreeMap<TiZiiBullet, Integer> bulletHitTimeIJ = enemiesInfo.bulletHitTime[tCoords.i][tCoords.j];
 
-	    for (TiZiiBullet tBullet :bulletHitTimeIJ.keySet()){
+	    for (TiZiiBullet tBullet : bulletHitTimeIJ.keySet()){
 			Integer time = bulletHitTimeIJ.get(tBullet);
 		    if (time == 1 && tBullet.direction != player.getMovementDirection()
-				    && tBullet.direction == TiZiiUtils.getReverseDirection(player.getMovementDirection())){
+				    && tBullet.direction != TiZiiUtils.getReverseDirection(player.getMovementDirection())){
 
 			    if (canGo(player, player.getMovementDirection())) move(player);
 			    else                                              randomMove(player); // player is dead. :(
@@ -217,13 +260,13 @@ public class TeamClientAi extends ClientGame {
 		    if (time == 2){
 			    // if Bullet Direction is Normal to Player Movement Direction.
 			    if (canGo(player, player.getMovementDirection()) && tBullet.direction != player.getMovementDirection()
-					    && tBullet.direction == TiZiiUtils.getReverseDirection(player.getMovementDirection())) {
+					    && tBullet.direction != TiZiiUtils.getReverseDirection(player.getMovementDirection())) {
 					move(player); return;
 			    }
 				// else turn player to a direction that he can go and its Normal to Bullet Direction.
 			    for (Direction direction : Direction.values()){
 				    if (canGo(player, direction) && tBullet.direction != direction
-						    && tBullet.direction == TiZiiUtils.getReverseDirection(direction)) {
+						    && tBullet.direction != TiZiiUtils.getReverseDirection(direction)) {
 					    move(player); return;
 				    }
 			    }
@@ -339,11 +382,14 @@ public class TeamClientAi extends ClientGame {
     private void moveOrRotate(Player player, Direction direction) {
         if (player.getMovementDirection().equals(direction) && canGo(player, direction)) {
             move(player);
+	        alliesInfo.nextPositions.add(new TiZiiCoords(player.getCell().getAdjacentCell(direction)));
             alliesInfo.blockedCoords.add(new TiZiiCoords(player.getCell().getAdjacentCell(direction)));
         } else if (player.getMovementDirection().equals(direction) && !canGo(player, direction)){
+	        alliesInfo.collidedPlayer.add(player.getId()); // TODO: maybe must check that player next position in some other player next position else remove the next position tree set.
 			randomMove(player);
         } else {
             rotate(player, direction);
+	        alliesInfo.nextPositions.add(new TiZiiCoords(player.getCell()));
             alliesInfo.blockedCoords.add(new TiZiiCoords(player.getCell()));
         }
 
@@ -365,11 +411,11 @@ public class TeamClientAi extends ClientGame {
 
     private void randomMove(Player player){
         int rand = TiZiiUtils.getRandomNumber(100);
-        if (rand <= 95 && canGo(player, player.getMovementDirection())) {
+        if (rand <= 60 && canGo(player, player.getMovementDirection())) {
             move(player);
 	        TiZiiCoords nextCoords = new TiZiiCoords(player.getCell().getAdjacentCell(player.getMovementDirection()));
 	        alliesInfo.blockedCoords.add(nextCoords);
-        } else {
+        } else if (rand <= 90){
 	        rand = TiZiiUtils.getRandomNumber(4);
 	        Direction[] directions = Direction.values();
 
@@ -379,6 +425,31 @@ public class TeamClientAi extends ClientGame {
 			        rotate(player, dir); break;
 		        }
 	        }
-        }
+        } // else don't move.
     }
+
+	/**
+	 * Move Player Randomly and avoid given direction.
+	 * @param player target player.
+	 * @param avoidDirection target direction.
+	 */
+	private void randomMoveAndAvoidDirection(Player player, Direction avoidDirection) {
+		int rand = TiZiiUtils.getRandomNumber(100);
+		if (rand <= 60 && canGo(player, player.getMovementDirection())
+				&& !player.getMovementDirection().equals(avoidDirection)) {
+			move(player);
+			TiZiiCoords nextCoords = new TiZiiCoords(player.getCell().getAdjacentCell(player.getMovementDirection()));
+			alliesInfo.blockedCoords.add(nextCoords);
+		} else if (rand <= 95){
+			rand = TiZiiUtils.getRandomNumber(4);
+			Direction[] directions = Direction.values();
+
+			for (int i = 0; i < 4; i++) {
+				Direction dir = directions[(rand + i) % 4];
+				if (canGo(player, dir) && !dir.equals(player.getMovementDirection()) && !dir.equals(avoidDirection)) {
+					rotate(player, dir); break;
+				}
+			}
+		} randomMove(player);
+	}
 }

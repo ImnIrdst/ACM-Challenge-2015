@@ -42,7 +42,7 @@ public class TiZiiUtils {
      * @param isClearing defines phase of the bfs.
      */
     public static void BFS(Integer itemId, TiZiiCoords itemCoords, TreeMap[][] bfsTable, boolean isClearing){
-        //staticsInfo.goldBFSCalculated.add(itemId);
+        //staticsInfo.goldBFSCalculated.add(itemId); // TODO: null pointer Exception
 
         TiZiiCoords s = itemCoords;
         Queue<TiZiiCoords> q = new LinkedList<>();
@@ -176,8 +176,15 @@ public class TiZiiUtils {
 	public static void printBulletsHitTime(ArrayList<Bullet> bullets, String title) {
 		System.out.println(title);
 		TreeSet<TiZiiBullet> tBullets= new TreeSet<>();
-		for (Bullet bullet : bullets) tBullets.add(new TiZiiBullet(bullet));
+		for (int i=0 ; i<rows ; i++){
+			for (int j=0 ; j<cols ; j++){
+				for (TiZiiBullet bullet : enemiesInfo.bulletHitTime[i][j].keySet()){
+					tBullets.add(bullet);
+				}
+			}
+		}
 		for (TiZiiBullet bullet: tBullets) {
+			System.out.println("Bullet: " + bullet.id);
 			for (TreeMap[] ai : enemiesInfo.bulletHitTime) {
 				for (TreeMap aij : ai) {
 					String str = (aij.get(bullet) == null ? "" + aij.get(bullet) : "(" + bullet+ "," + aij.get(bullet) +")");
@@ -202,7 +209,7 @@ public class TiZiiUtils {
 
     public static class Consts{
         public static final int BFS_RADIUS = 10; // TODO: Not Used.
-	    public static final int MANHATAN_DISTANCE = Math.min(rows, cols)/2;
+	    public static final int MANHATTAN_DISTANCE = Math.min(rows, cols)/2;
         public static final boolean isLogginEnabled = true;
     }
 }

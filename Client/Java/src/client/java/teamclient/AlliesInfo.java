@@ -3,12 +3,11 @@ package client.java.teamclient;
 import client.java.teamclient.TiZiiClasses.DirectionScorePair;
 import client.java.teamclient.TiZiiClasses.StepsInDirection;
 import client.java.teamclient.TiZiiClasses.TiZiiCoords;
+import com.sun.xml.internal.bind.v2.runtime.reflect.opt.Const;
 import common.board.Board;
 import common.board.Cell;
 import common.board.Direction;
-import common.player.Bullet;
-import common.player.Hunter;
-import common.player.Player;
+import common.player.*;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -21,16 +20,22 @@ import java.util.TreeSet;
  * Description:  Contains Info about my players.
  */
 public class AlliesInfo {
+	public int rows, cols;
     public Board gameBoard;
     public EnemiesInfo enemiesInfo;
     public StaticsInfo staticsInfo;
+	public int[][] mBoard;
 	public ArrayList<Player> myPlayers;
     public HashMap<Integer, StepsInDirection> prevDirections;       // for calculating FORWARD_SCORE.
     public TreeSet<TiZiiCoords> blockedCoords;                      // for avoiding collisions and my Bullets.
-    public TreeSet<TiZiiCoords> playerAndBullets;                   // for detecting block cells
+	public TreeSet<TiZiiCoords> nextPositions;                      // for detecting collisions.
+	public TreeSet<TiZiiCoords> playerAndBullets;                   // for detecting block cells
     public TreeSet<TiZiiCoords> curAroundCells;                     // for removing golds
     public TreeSet<Integer> prevPlayers;                            // for finding dead players.
 	public TreeSet<Integer> idlePlayers;                            // for assigning discovery tasks.
+	public TreeSet<Integer> collidedPlayer;                         // for avoiding collisions
+
+    public TreeMap<Integer, Integer> hunterBurstFire;               // Maps Hunter Id to A Number ( if greater than BURST_QTY fire else don't shoot).
     //public TreeSet<Integer> deadPlayers;                          // not Needed Now.
 
     public TreeMap<Integer, Integer> assignedGoldToPlayer;          // Maps Each Gold to a player
@@ -44,7 +49,12 @@ public class AlliesInfo {
         this.prevDirections = new HashMap<>();
         this.assignedGoldToPlayer = new TreeMap<>();
         this.assignedPlayerToGold = new TreeMap<>();
+		this.collidedPlayer = new TreeSet<>();
+	    this.hunterBurstFire = new TreeMap<>();
 
+	    this.rows = gameBoard.getNumberOfRows();
+	    this.cols = gameBoard.getNumberOfColumns();
+	    this.mBoard = new int[rows][cols];
     }
 
     /**
@@ -57,16 +67,22 @@ public class AlliesInfo {
         this.blockedCoords = new TreeSet<>();
         this.playerAndBullets = new TreeSet<>();
         this.curAroundCells = new TreeSet<>(); // TODO: Not Used. Must Be Removed.
+	    this.nextPositions = new TreeSet<>();
 		this.myPlayers = myPlayers;
         // process my current players
         TreeSet<Integer> curPlayers = new TreeSet<>();
         for (Player player : myPlayers){
             curPlayers.add(player.getId());
-            blockedCoords.add(new TiZiiCoords(player.getCell()));
-            playerAndBullets.add(new TiZiiCoords(player.getCell())); // TODO: Not Used. Must Be Removed.
+	        TiZiiCoords coords = new TiZiiCoords(player.getCell());
+            blockedCoords.add(coords);
+            playerAndBullets.add(coords); // TODO: Not Used. Must Be Removed.
             for (Cell cell : player.getCell().getAroundCells()){     // TODO: Not Used. Must Be Removed.
                 curAroundCells.add(new TiZiiCoords(cell));
             }
+
+	        if (player instanceof Hunter)       mBoard[coords.i][coords.j] = Consts.HUNTER;
+	        if (player instanceof GoldMiner)    mBoard[coords.i][coords.j] = Consts.MINER;
+	        if (player instanceof Spy)          mBoard[coords.i][coords.j] = Consts.SPY;
         }
 
         // find the dead players
@@ -221,13 +237,45 @@ public class AlliesInfo {
 		return true;
 	}
 
+	/**
+	 * Checks the player sight and around the gold. then pave the way.
+	 * @param player that must do this check for.
+	 * @return Direction that must be avoided. Not null if gold inSight (with a limit) and a miner is near that gold.
+	 */
+	public Direction isGoldOnSightAndMinerNearby(Player player) {
+		int step = 0, limit = 3;
+		Cell cell = player.getCell();
+		while (step < limit && cell != null){
+			int i = cell.getRowNumber();
+			int j = cell.getColumnNumber();
+			if (staticsInfo.mBoard[i][j] == StaticsInfo.Consts.GOLD){
+				for (int ii = i-2 ; ii<i+2; ii++){
+					for (int jj = j-2 ; jj<j+2 ; jj++){
+						if (!TiZiiUtils.inRange(ii, jj)) continue;
+						if (mBoard[ii][jj] == Consts.MINER){
+							return TiZiiUtils.cellToCellDirection(player.getCell(), cell);
+						}
+					}
+				}
+			}
+			step++;
+			cell = cell.getAdjacentCell(player.getMovementDirection());
+		}
+		return null;
+	}
+
 
 	public static class Consts {
         // TODO: Adjust These.
+		public static final int HUNTER = 5;
+		public static final int MINER = 6;
+		public static final int SPY = 7;
+
         public static final int BLOCK_SCORE = -1000;
         public static final int FORWARD_SCORE = 2;
         public static final int BACKWARD_SCORE  = -500;
         public static final int UNSEEN_CELL_SCORE = 50;
         public static final int WING_LENGTH = 2;
+        public static final int BURST_QTY = 2;
     }
 }

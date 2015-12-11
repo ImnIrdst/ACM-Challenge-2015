@@ -54,11 +54,11 @@
 * Mark Blind Points
 
 # Todos
-17. Fix Hunter Logic. (Only Soot Ahead Enemies & Burst Fire).
-18. Fix Collisions. (Keep The Collided Player and Force them to Move in another Direction.)
-19. Fix Spy Logic Code. (Doesn't Hide Correctly)
-20. Kill Hunter (or Player) on the Gold Strategy.
-21. Keep Hunters Watching (Turning Around) on Gold Till One Of the Miners Get. There.
+21. Fix The Bug With The BulletHitTime.
+22. Keep Hunters Watching (Turning Around) on Gold Till One Of the Miners Get. There. (Hunter on Gold Until Ally Miner Comes Around.)
+23. Fix Spy Logic Code. (Doesn't Hide Correctly)
+24. Kill Hunter (or Player) on the Gold Strategy. (If Visible Enemies on The Gold Send Hunters).
+25. if a free player nearer to a target reassign the target.
 
 # Done
 00. Create Git Repository
@@ -78,3 +78,7 @@
 14. Implement Avoid Bullets function.
 15. Fix the update bullet hit time function.
 16. Edge Cells BFS. (Set Discovery Targets.)
+17. Fix Hunter Logic. (Only Soot Ahead Enemies & Burst Fire).
+18. Fix Collisions. (Keep The Collided Player and Force them to Move in another Direction.)
+19. Avoid golds if miners nearby. (and you face a gold)
+20. Do Target Assigning for each Cycle. (Doesn't Work Well.)
