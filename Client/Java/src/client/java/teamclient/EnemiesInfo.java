@@ -75,7 +75,6 @@ public class EnemiesInfo {
 //                }
             }
         }
-
 	    // Update Bullet Hit Time.
 	    for (int i=0 ; i<rows ; i++){
 		    for(int j=0 ; j<cols ; j++){
@@ -90,28 +89,34 @@ public class EnemiesInfo {
 			    }
 		    }
 	    }
-
 	    // Calculate Bullet Hit Time.
 	    for (Bullet bullet : bullets){
 		    TiZiiBullet tBullet = new TiZiiBullet(bullet);
+		    TiZiiCoords coords = new TiZiiCoords(tBullet.cell);
 
 		    int time = 0;
-		    for (TiZiiCoords coords = new TiZiiCoords(tBullet.cell) ;
-		         TiZiiUtils.inRange(coords.i, coords.j) ; coords = coords.adjacent(tBullet.direction)){
+		    while (TiZiiUtils.inRange(coords.i, coords.j)){
 			    bulletHitTime[coords.i][coords.j].put(tBullet, time);
-			    time++;
+			    coords = coords.adjacent(tBullet.direction);
+			    if (TiZiiUtils.inRange(coords.i, coords.j))
+				    bulletHitTime[coords.i][coords.j].put(tBullet, time);
+			    coords = coords.adjacent(tBullet.direction); time++;
 		    }
 	    }
-
 	    // add the targets with hitTime == 1 to Blocked Cells.
 	    TreeSet<TiZiiBullet> tBullets= new TreeSet<>();
-	    for (Bullet bullet : bullets) tBullets.add(new TiZiiBullet(bullet));
-
+	    for (int i=0 ; i<rows ; i++) {
+		    for (int j = 0; j < cols; j++) {
+			    for (TiZiiBullet bullet : bulletHitTime[i][j].keySet()) {
+				    tBullets.add(bullet);
+			    }
+		    }
+	    }
 	    for (TiZiiBullet bullet: tBullets) {
 		    for (int i=0 ; i<rows ; i++){
 			    for (int j=0 ; j<cols ; j++){
 				    Integer hitTime = bulletHitTime[i][j].get(bullet);
-				    if ( hitTime != null && hitTime == 1){
+				    if ( hitTime != null && hitTime <= 2){
 						alliesInfo.blockedCoords.add(new TiZiiCoords(i, j));
 				    }
 			    }

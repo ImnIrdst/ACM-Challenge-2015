@@ -64,7 +64,7 @@ public class TiZiiUtils {
 			            bfsTable[v.i][v.j].put(itemId,
 					            new DistanceDirectionPair(vis[v.i][v.j],
 							            TiZiiUtils.getReverseDirection(dir))); // TODO: There Is A Bug in This. prints D Without Down Cell.
-		            else
+		            else if (bfsTable[v.i][v.j].containsKey(itemId))
 			            bfsTable[v.i][v.j].remove(itemId);
 	            }
             }
@@ -173,7 +173,7 @@ public class TiZiiUtils {
         System.out.println();
     }
 
-	public static void printBulletsHitTime(ArrayList<Bullet> bullets, String title) {
+	public static void printBulletsHitTime(String title) {
 		System.out.println(title);
 		TreeSet<TiZiiBullet> tBullets= new TreeSet<>();
 		for (int i=0 ; i<rows ; i++){

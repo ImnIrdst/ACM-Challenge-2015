@@ -46,6 +46,4 @@ public class TiZiiCoords implements Comparable<TiZiiCoords>{
         if (a.i != b.i) return Integer.compare(a.i, b.i);
         else            return Integer.compare(a.j, b.j);
     }
-
-
 }

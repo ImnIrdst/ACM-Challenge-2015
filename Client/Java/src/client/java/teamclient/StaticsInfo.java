@@ -131,8 +131,6 @@ public class StaticsInfo {
 		            alliesInfo.assignedPlayerToGold.remove(playerId);
 		            alliesInfo.assignedGoldToPlayer.remove(goldId);
 	            }
-
-
 	            discoveredAreas[coord.i][coord.j] = Consts.EMPTY;
             }
         }
@@ -152,7 +150,8 @@ public class StaticsInfo {
 				if (discoveredAreas[cell.getRowNumber()][cell.getColumnNumber()] == Consts.UNSEEN) {
 					if (cell.getType().isBlock())
 						 discoveredAreas[cell.getRowNumber()][cell.getColumnNumber()] = Consts.BLOCK;
-					else discoveredAreas[cell.getRowNumber()][cell.getColumnNumber()] = Consts.EMPTY;
+					else
+						discoveredAreas[cell.getRowNumber()][cell.getColumnNumber()] = Consts.EMPTY;
 
 					TiZiiCoords coords = new TiZiiCoords(cell);
 					if (discoveryCoordsToId.containsKey(coords)){
@@ -178,14 +177,8 @@ public class StaticsInfo {
 
 	    for (int i=0 ; i<rows ; i++){
 		    for (int j=0 ; j<cols ; j++){
-			    try {
-				    if (discoveredAreas[i][j] > 0) continue;
-				    if (assignedDiscoveryTargetToPlayer.size() >= alliesInfo.idlePlayers.size()) break;
-			    } catch (Exception e){
-				    for (int d = 0 ; d<100 ; d+=2)
-					    d+=2;
-				    e.printStackTrace();
-			    }
+			    if (discoveredAreas[i][j] > 0) continue;
+			    if (assignedDiscoveryTargetToPlayer.size() >= alliesInfo.idlePlayers.size()) break;
 
 			    boolean isEdgeCell = false;
 			    for (int ii=i-1 ; ii<=i+1; ii++){
@@ -198,6 +191,7 @@ public class StaticsInfo {
 				TiZiiCoords thisCoords = new TiZiiCoords(i, j);
 
 			    if (isEdgeCell){
+
 				    boolean isHigherThanManhattan = true;
 				    for (TiZiiCoords coords : discoveryCoordsToId.keySet()){
 						if (TiZiiUtils.manhattanDistance(thisCoords, coords) < TiZiiUtils.Consts.MANHATTAN_DISTANCE){
@@ -206,6 +200,9 @@ public class StaticsInfo {
 				    }
 
 				    if (isHigherThanManhattan){
+					    if (TiZiiUtils.getRandomNumber(100) > 85)
+						    continue; // Try Some Randomness
+
 					    int id; // Assign Id To Coord
 					    for (id=0 ; true ; id++){
 						    if (!discoveryIdToCoords.containsKey(id)){

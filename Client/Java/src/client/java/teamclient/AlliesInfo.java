@@ -34,7 +34,6 @@ public class AlliesInfo {
     public TreeSet<Integer> prevPlayers;                            // for finding dead players.
 	public TreeSet<Integer> idlePlayers;                            // for assigning discovery tasks.
 	public TreeSet<Integer> collidedPlayer;                         // for avoiding collisions
-
     public TreeMap<Integer, Integer> hunterBurstFire;               // Maps Hunter Id to A Number ( if greater than BURST_QTY fire else don't shoot).
     //public TreeSet<Integer> deadPlayers;                          // not Needed Now.
 
@@ -111,7 +110,6 @@ public class AlliesInfo {
         for (Bullet bullet : bullets) {
             if (bullet.getCell().getAdjacentCell(bullet.getMovementDirection()) != null) {
                 playerAndBullets.add(new TiZiiCoords(bullet.getCell())); // TODO: Not Used. Must Be Removed.
-                blockedCoords.add(new TiZiiCoords(bullet.getCell().getAdjacentCell(bullet.getMovementDirection())));
             }
         }
 
