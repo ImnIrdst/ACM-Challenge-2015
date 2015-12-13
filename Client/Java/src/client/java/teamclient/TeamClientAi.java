@@ -338,7 +338,9 @@ public class TeamClientAi extends ClientGame {
 
 				staticsInfo.assignedDiscoveryTargetToPlayer.put(assignedCoords, player.getId());
 				staticsInfo.assignedPlayerToDiscoveryTarget.put(player.getId(), assignedCoords);
-				alliesInfo.idlePlayers.remove(player.getId());
+
+				if (alliesInfo.idlePlayers.contains(player.getId()))
+					alliesInfo.idlePlayers.remove(player.getId());
 
 				discoveryMove(player); // call recursively after assigned to a target.
 			} else {

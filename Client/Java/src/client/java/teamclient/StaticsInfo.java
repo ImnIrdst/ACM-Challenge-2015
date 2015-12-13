@@ -102,14 +102,17 @@ public class StaticsInfo {
 		        // remove player from discovery.
 		        if (assignedPlayerToDiscoveryTarget.containsKey(assignedMiner)){
 			        TiZiiCoords coords = assignedPlayerToDiscoveryTarget.get(assignedMiner);
-			        assignedDiscoveryTargetToPlayer.remove(coords);
-			        assignedPlayerToDiscoveryTarget.remove(assignedMiner);
+			        if (assignedDiscoveryTargetToPlayer.containsKey(coords))
+				        assignedDiscoveryTargetToPlayer.remove(coords);
+			        if (coords != null) assignedPlayerToDiscoveryTarget.remove(assignedMiner);
 
-			        int targetId = discoveryCoordsToId.get(coords);   // Clearing BFS and All Assignments.
-			        discoveryCoordsToId.remove(coords);
-			        discoveryIdToCoords.remove(targetId);
-
-			        TiZiiUtils.BFS(targetId, coords, discoveryBFSTable, true);
+			        Integer targetId = discoveryCoordsToId.get(coords);   // Clearing BFS and All Assignments.
+			        if (targetId != null) {
+				        discoveryCoordsToId.remove(coords);
+				        if (discoveryIdToCoords.containsKey(targetId))
+					        discoveryIdToCoords.remove(targetId);
+				        TiZiiUtils.BFS(targetId, coords, discoveryBFSTable, true);
+			        }
 		        }
 	        }
         }
@@ -122,16 +125,23 @@ public class StaticsInfo {
                     && !curGoldLocations.contains(coord)) {
 
 	            Integer goldId = coordToGoldIdMap.get(coord);
-                TiZiiUtils.BFS(goldId, coord, goldBFSTable, true); // Clearing BFS
-                goldIdToCoordMap.remove(goldId);
-                coordToGoldIdMap.remove(coord); mBoard[i][j] = Consts.EMPTY;
+	            if (goldId != null) {
 
-	            Integer playerId = alliesInfo.assignedGoldToPlayer.get(goldId);
-	            if (playerId != null){
-		            alliesInfo.assignedPlayerToGold.remove(playerId);
-		            alliesInfo.assignedGoldToPlayer.remove(goldId);
+		            TiZiiUtils.BFS(goldId, coord, goldBFSTable, true); // Clearing BFS
+
+		            if (goldIdToCoordMap.containsKey(goldId)) goldIdToCoordMap.remove(goldId);
+		            if (coordToGoldIdMap.containsKey(coord)) coordToGoldIdMap.remove(coord);
+
+		            mBoard[i][j] = Consts.EMPTY;
+
+		            Integer playerId = alliesInfo.assignedGoldToPlayer.get(goldId);
+		            if (playerId != null) {
+			            if (alliesInfo.assignedPlayerToGold.containsKey(playerId))
+				            alliesInfo.assignedPlayerToGold.remove(playerId);
+			            alliesInfo.assignedGoldToPlayer.remove(goldId);
+		            }
+		            discoveredAreas[coord.i][coord.j] = Consts.EMPTY;
 	            }
-	            discoveredAreas[coord.i][coord.j] = Consts.EMPTY;
             }
         }
 
@@ -155,21 +165,27 @@ public class StaticsInfo {
 
 					TiZiiCoords coords = new TiZiiCoords(cell);
 					if (discoveryCoordsToId.containsKey(coords)){
-						int targetId = discoveryCoordsToId.get(coords);   // Clearing BFS and All Assignments.
-						discoveryCoordsToId.remove(coords);
-						discoveryIdToCoords.remove(targetId);
-						int playerId = assignedDiscoveryTargetToPlayer.get(coords);
-						assignedDiscoveryTargetToPlayer.remove(coords);
-						assignedPlayerToDiscoveryTarget.remove(playerId);
+						Integer targetId = discoveryCoordsToId.get(coords);   // Clearing BFS and All Assignments.
+						if (targetId != null) discoveryCoordsToId.remove(coords);
+						if (discoveryIdToCoords.containsKey(targetId)) discoveryIdToCoords.remove(targetId);
+
+						Integer playerId = assignedDiscoveryTargetToPlayer.get(coords);
+						if (assignedDiscoveryTargetToPlayer.containsKey(coords))
+							assignedDiscoveryTargetToPlayer.remove(coords);
+
+						if (playerId != null) assignedPlayerToDiscoveryTarget.remove(playerId);
 						alliesInfo.idlePlayers.add(playerId);
-						TiZiiUtils.BFS(targetId, coords, discoveryBFSTable, true);
+						if (targetId != null) TiZiiUtils.BFS(targetId, coords, discoveryBFSTable, true);
 					}
 					// TODO: Weird.
 					if (assignedDiscoveryTargetToPlayer.containsKey(coords)){
-						int playerId = assignedDiscoveryTargetToPlayer.get(coords);
-						assignedDiscoveryTargetToPlayer.remove(coords);
-						assignedPlayerToDiscoveryTarget.remove(playerId);
-						alliesInfo.idlePlayers.add(playerId);
+						Integer playerId = assignedDiscoveryTargetToPlayer.get(coords);
+						if (playerId != null) {
+							assignedDiscoveryTargetToPlayer.remove(coords);
+							if (assignedPlayerToDiscoveryTarget.containsKey(playerId))
+								assignedPlayerToDiscoveryTarget.remove(playerId);
+							alliesInfo.idlePlayers.add(playerId);
+						}
 					}
 				}
 		    }
@@ -228,11 +244,12 @@ public class StaticsInfo {
 					    if (assignedPlayer != null){
 						    assignedDiscoveryTargetToPlayer.put(thisCoords, assignedPlayer);
 						    assignedPlayerToDiscoveryTarget.put(assignedPlayer, thisCoords);
-						    alliesInfo.idlePlayers.remove(assignedPlayer);
+						    if (alliesInfo.idlePlayers.contains(assignedPlayer))
+							    alliesInfo.idlePlayers.remove(assignedPlayer);
 					    } else { // cannot be assigned.
 						    TiZiiUtils.BFS(discoveryCoordsToId.get(thisCoords), thisCoords, discoveryBFSTable, true);
-						    discoveryIdToCoords.remove(id);
-						    discoveryCoordsToId.remove(thisCoords);
+						    if (discoveryIdToCoords.containsKey(id)) discoveryIdToCoords.remove(id);
+						    if (discoveryCoordsToId.containsKey(thisCoords)) discoveryCoordsToId.remove(thisCoords);
 					    }
 				    }
 			    }

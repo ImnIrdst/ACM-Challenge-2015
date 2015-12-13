@@ -55,9 +55,10 @@
 
 # Todos
 22. Fix Spy Logic Code. (Doesn't Hide Correctly)
-23. Kill Hunter (or Player) on the Gold Strategy. (If Visible Enemies on The Gold Send Hunters).
-24. Keep Hunters Watching (Turning Around) on Gold Till One Of the Miners Get. There. (Hunter on Gold Until Ally Miner Comes Around.)
-25. if a free player nearer to a target reassign the target.
+23. Shuffle Players for random Priorities.
+24. Kill Hunter (or Player) on the Gold Strategy. (If Visible Enemies on The Gold Send Hunters).
+25. Keep Hunters Watching (Turning Around) on Gold Till One Of the Miners Get. There. (Hunter on Gold Until Ally Miner Comes Around.)
+26. if a free player nearer to a target reassign the target.
 
 # Done
 00. Create Git Repository

@@ -89,9 +89,11 @@ public class AlliesInfo {
             for (Integer playerId : prevPlayers){
                 if (!curPlayers.contains(playerId)){
                     // deadPlayers.add(playerId)
-	                if (!assignedPlayerToGold.containsKey(playerId)) continue;
-                    assignedGoldToPlayer.remove(assignedPlayerToGold.get(playerId));
-	                assignedPlayerToGold.remove(playerId);
+                    Integer goldId = assignedPlayerToGold.get(playerId);
+	                if (goldId != null && assignedPlayerToGold.containsKey(playerId)) {
+		                assignedGoldToPlayer.remove(goldId);
+		                assignedPlayerToGold.remove(playerId);
+	                }
                 }
             }
         }
