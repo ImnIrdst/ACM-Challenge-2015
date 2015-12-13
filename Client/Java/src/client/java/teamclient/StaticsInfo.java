@@ -4,6 +4,7 @@ import client.java.teamclient.TiZiiClasses.DistanceDirectionPair;
 import client.java.teamclient.TiZiiClasses.TiZiiCoords;
 import common.board.Board;
 import common.board.Cell;
+import common.board.Direction;
 import common.board.Gold;
 import common.player.GoldMiner;
 import common.player.Player;
@@ -24,7 +25,9 @@ public class StaticsInfo {
     public TreeMap<Integer, DistanceDirectionPair>[][] goldBFSTable; // Maps GOLD id with Distance and Direction to it
 	public TreeMap<Integer, DistanceDirectionPair>[][] discoveryBFSTable; // Maps Discovery Coords with Distance and Direction to it
     public TreeSet<Integer> goldBFSCalculated;            // All The Gold With BFS Calculated.
+	public TreeSet<Integer> curValidGolds;                        // All The Gold (ids) That Present On The Map.
     public TreeSet<TiZiiCoords> curGoldLocations;          // Current Locations that contains gold.
+	public ArrayList<TiZiiCoords> curEdgeCells;            // Get The Current Map Edge Cells. (Undiscovered cells adjacent to discovered cells)
     public TreeMap<Integer, TiZiiCoords> goldIdToCoordMap; // Maps Gold id with Coordination of it.
     public TreeMap<TiZiiCoords, Integer> coordToGoldIdMap; // Maps Coordination with Gold id
     public TreeMap<TiZiiCoords, Integer> assignedDiscoveryTargetToPlayer;
@@ -43,6 +46,7 @@ public class StaticsInfo {
         this.mBoard = new int[rows][cols];
 	    this.discoveredAreas = new int[rows][cols];
 
+	    this.curValidGolds = new TreeSet<>();
 	    this.goldIdToCoordMap = new TreeMap<>();
         this.coordToGoldIdMap = new TreeMap<>();
 
@@ -68,82 +72,93 @@ public class StaticsInfo {
      */
     public void updateStaticBoard(ArrayList<Gold> golds, ArrayList<Player> players){
         Cell[][] cells = gameBoard.getCells();
+		alliesInfo.assignedPlayerToGold = new TreeMap<>();
+	    alliesInfo.assignedGoldToPlayer = new TreeMap<>();
 
         // Processing New Golds.
         curGoldLocations = new TreeSet<>();          // Current Cycle Visible Golds.
         for (Gold gold : golds){
 	        TiZiiCoords coord = new TiZiiCoords(gold.getCell());
-            curGoldLocations.add(coord);
-            goldIdToCoordMap.put(gold.getId(), coord);
+	        curValidGolds.add(gold.getId());
+	        curGoldLocations.add(coord);
+	        goldIdToCoordMap.put(gold.getId(), coord);
             coordToGoldIdMap.put(coord, gold.getId());
 			discoveredAreas[coord.i][coord.j] = Consts.GOLD;
 	        setCell(gold.getCell(), Consts.GOLD);                       // Calculate BFS.
 	        if (!goldBFSCalculated.contains(gold.getId()))
 		        TiZiiUtils.BFS(gold.getId(), coord, goldBFSTable, false);
-	        if (alliesInfo.assignedGoldToPlayer.containsKey(gold.getId())) continue;
 
-	        // assign closest available miner to gold // TODO: Use Idle Players.
-	        Integer minDist = (int)1e8;
-	        Integer assignedMiner = null;
-	        for (Player miner : players){
-				if (miner instanceof GoldMiner){
-					TiZiiCoords minerCoords = new TiZiiCoords(miner.getCell());
-					DistanceDirectionPair pair = goldBFSTable[minerCoords.i][minerCoords.j].get(gold.getId());
-					if (pair != null && pair.distance < minDist
-							&& !alliesInfo.assignedPlayerToGold.containsKey(miner.getId())){
-						minDist = pair.distance; assignedMiner = miner.getId();
-					}
-				}
-			}
-	        if (assignedMiner != null){
-		        alliesInfo.assignedPlayerToGold.put(assignedMiner, gold.getId());
-		        alliesInfo.assignedGoldToPlayer.put(gold.getId(), assignedMiner);
 
-		        // remove player from discovery.
-		        if (assignedPlayerToDiscoveryTarget.containsKey(assignedMiner)){
-			        TiZiiCoords coords = assignedPlayerToDiscoveryTarget.get(assignedMiner);
-			        if (assignedDiscoveryTargetToPlayer.containsKey(coords))
-				        assignedDiscoveryTargetToPlayer.remove(coords);
-			        if (coords != null) assignedPlayerToDiscoveryTarget.remove(assignedMiner);
+        }
 
-			        Integer targetId = discoveryCoordsToId.get(coords);   // Clearing BFS and All Assignments.
-			        if (targetId != null) {
-				        discoveryCoordsToId.remove(coords);
-				        if (discoveryIdToCoords.containsKey(targetId))
-					        discoveryIdToCoords.remove(targetId);
-				        TiZiiUtils.BFS(targetId, coords, discoveryBFSTable, true);
-			        }
+        // Remove Digged Golds.
+        for (TiZiiCoords coord : alliesInfo.curAroundCells) {
+	        int i = coord.i, j = coord.j;
+	        if (coordToGoldIdMap.containsKey(coord)
+			        && mBoard[i][j] == Consts.GOLD
+			        && !curGoldLocations.contains(coord)) {
+
+		        Integer goldId = coordToGoldIdMap.get(coord);
+		        if (goldId != null) {
+			        curValidGolds.remove(goldId);
+			        TiZiiUtils.BFS(goldId, coord, goldBFSTable, true); // Clearing BFS
+
+			        if (goldIdToCoordMap.containsKey(goldId)) goldIdToCoordMap.remove(goldId);
+			        if (coordToGoldIdMap.containsKey(coord)) coordToGoldIdMap.remove(coord);
+
+			        mBoard[i][j] = Consts.EMPTY;
+
+
+			        // TODO: Not Used.
+//			        Integer playerId = alliesInfo.assignedGoldToPlayer.get(goldId);
+//			        if (playerId != null) {
+//				        if (alliesInfo.assignedPlayerToGold.containsKey(playerId))
+//					        alliesInfo.assignedPlayerToGold.remove(playerId);
+//				        alliesInfo.assignedGoldToPlayer.remove(goldId);
+//			        }
+//			        discoveredAreas[coord.i][coord.j] = Consts.EMPTY;
 		        }
 	        }
         }
 
-        // Remove Digged Golds.
-        for (TiZiiCoords coord : alliesInfo.curAroundCells){
-            int i = coord.i, j = coord.j;
-            if (coordToGoldIdMap.containsKey(coord)
-                    && mBoard[i][j] == Consts.GOLD
-                    && !curGoldLocations.contains(coord)) {
+	    // assign closest available miner to gold.
+	    for (Integer goldId : curValidGolds){
+		    Integer minDist = (int)1e8;
+		    Integer assignedMiner = null;
+		    for (Player miner : players){
+			    if (miner instanceof GoldMiner){
+				    TiZiiCoords minerCoords = new TiZiiCoords(miner.getCell());
+				    DistanceDirectionPair pair = goldBFSTable[minerCoords.i][minerCoords.j].get(goldId);
+				    if (pair != null && pair.distance < minDist
+						    && !alliesInfo.assignedPlayerToGold.containsKey(miner.getId())){
+					    minDist = pair.distance; assignedMiner = miner.getId();
+				    }
+			    }
+		    }
+		    if (assignedMiner != null){
+			    if (TiZiiUtils.isLoggingEnabled && TiZiiUtils.needed){
+				    System.out.println("Miner " + assignedMiner + " is assigned to " + goldIdToCoordMap.get(goldId));
+			    }
+			    alliesInfo.assignedPlayerToGold.put(assignedMiner, goldId);
+			    alliesInfo.assignedGoldToPlayer.put(goldId, assignedMiner);
 
-	            Integer goldId = coordToGoldIdMap.get(coord);
-	            if (goldId != null) {
+			    // remove player from discovery.
+			    if (assignedPlayerToDiscoveryTarget.containsKey(assignedMiner)){
+				    TiZiiCoords coords = assignedPlayerToDiscoveryTarget.get(assignedMiner);
+				    if (assignedDiscoveryTargetToPlayer.containsKey(coords))
+					    assignedDiscoveryTargetToPlayer.remove(coords);
+				    if (coords != null) assignedPlayerToDiscoveryTarget.remove(assignedMiner);
 
-		            TiZiiUtils.BFS(goldId, coord, goldBFSTable, true); // Clearing BFS
-
-		            if (goldIdToCoordMap.containsKey(goldId)) goldIdToCoordMap.remove(goldId);
-		            if (coordToGoldIdMap.containsKey(coord)) coordToGoldIdMap.remove(coord);
-
-		            mBoard[i][j] = Consts.EMPTY;
-
-		            Integer playerId = alliesInfo.assignedGoldToPlayer.get(goldId);
-		            if (playerId != null) {
-			            if (alliesInfo.assignedPlayerToGold.containsKey(playerId))
-				            alliesInfo.assignedPlayerToGold.remove(playerId);
-			            alliesInfo.assignedGoldToPlayer.remove(goldId);
-		            }
-		            discoveredAreas[coord.i][coord.j] = Consts.EMPTY;
-	            }
-            }
-        }
+				    Integer targetId = discoveryCoordsToId.get(coords);   // Clearing BFS and All Assignments.
+				    if (targetId != null) {
+					    discoveryCoordsToId.remove(coords);
+					    if (discoveryIdToCoords.containsKey(targetId))
+						    discoveryIdToCoords.remove(targetId);
+					    TiZiiUtils.BFS(targetId, coords, discoveryBFSTable, true);
+				    }
+			    }
+		    }
+	    }
 
         // add Block and Empty Locations
         for(int i = 0 ; i<rows ; i++){
@@ -266,12 +281,92 @@ public class StaticsInfo {
         mBoard[cell.getRowNumber()][cell.getColumnNumber()] = value;
     }
 
-    public static class Consts{
+	/**
+	 * Checks that is a cell contains gold or not.
+	 * @param cell cell that we must check this for.
+	 * @return true if this cell is contain gold.
+	 */
+	public boolean isGoldCell(Cell cell) {
+		return mBoard[cell.getRowNumber()][cell.getColumnNumber()] == Consts.GOLD;
+	}
+
+	/**
+	 * clearing a discovery target.
+	 * @param target that must be cleared.
+	 */
+	public void clearDiscoveryTarget(TiZiiCoords target) {
+		Integer targetId = discoveryCoordsToId.get(target);   // Clearing BFS and All Assignments.
+
+		if (targetId != null)
+			discoveryIdToCoords.remove(targetId);
+
+		if (discoveryCoordsToId.containsKey(target))
+			discoveryCoordsToId.remove(target);
+
+		Integer playerId = assignedDiscoveryTargetToPlayer.get(target);
+
+		if (assignedDiscoveryTargetToPlayer.containsKey(target))
+			assignedDiscoveryTargetToPlayer.remove(target);
+
+		if (playerId != null)
+			assignedPlayerToDiscoveryTarget.remove(playerId);
+
+		alliesInfo.idlePlayers.add(playerId);
+
+		if (targetId != null )TiZiiUtils.BFS(targetId, target, discoveryBFSTable, true);
+	}
+
+	/**
+	 * Get The Current Map Edge Cells. (Undiscovered cells adjacent to discovered cells)
+	 * @return array of curEdgeCells.
+	 */
+	public ArrayList<TiZiiCoords> getCurEdgeCells() {
+		if (curEdgeCells != null){
+			Collections.shuffle(curEdgeCells);
+			return curEdgeCells;
+		}
+
+		this.curEdgeCells = new ArrayList<>();
+		for (int i = 0; i < rows; i++) {
+			for (int j = 0; j < cols; j++) {
+				TiZiiCoords thisCoords = new TiZiiCoords(i, j);
+				boolean isEdgeCell = false;
+				for (int ii = i - 1; ii <= i + 1; ii++) {
+					for (int jj = j - 1; jj <= j + 1; jj++) {
+						if (!TiZiiUtils.inRange(ii, jj)) continue;
+						if (discoveredAreas[ii][jj] != StaticsInfo.Consts.UNSEEN
+								&& discoveredAreas[ii][jj] != StaticsInfo.Consts.BLOCK) {
+							isEdgeCell = true;
+						}
+					}
+				}
+				if (isEdgeCell) curEdgeCells.add(thisCoords);
+			}
+		}
+		Collections.shuffle(curEdgeCells);
+		return curEdgeCells;
+	}
+
+	/**
+	 * Checks That if Second Ahead Cell of Player is UnDiscovered or not.
+	 * @param player that we must check this for him.
+	 * @return true if conditions met.
+	 */
+	public boolean isSecondAheadCellsUnDiscovered(Player player) {
+		Direction direction = player.getMovementDirection();
+		TiZiiCoords coords = new TiZiiCoords(player.getCell());
+		int ii = coords.i + (2 * direction.getDeltaRow());
+		int jj = coords.j + (2 * direction.getDeltaCol());
+		return TiZiiUtils.inRange(ii, jj) && discoveredAreas[ii][jj] == Consts.UNSEEN;
+	}
+
+
+	public static class Consts{
         public static final int UNSEEN = 0;
         public static final int EMPTY  = 1;
         public static final int BLOCK  = 2;
         public static final int BLIND  = 3;
-        public static final int GOLD = 9;
+        public static final int GOLD   = 9;
 
 	    public static int DISCOVERY_QTY;
     }

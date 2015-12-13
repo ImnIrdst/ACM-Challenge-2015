@@ -228,7 +228,12 @@ public class AlliesInfo {
         }
         return cnt;
     }
-    // TODO: Comment.
+
+	/**
+	 * Checks That No Allies inSight of Hunter. (before Shooting)
+	 * @param hunter that we must do this for him.
+	 * @return true if no Allies insight.
+	 */
 	public boolean noAlliesInsight(Hunter hunter) {
 		for (Cell cell : hunter.getAheadCells()){
 			Player playerInside = cell.getPlayerInside();
@@ -237,7 +242,7 @@ public class AlliesInfo {
 		return true;
 	}
 
-	/**
+	/** // TODO: Correct This.
 	 * Checks the player sight and around the gold. then pave the way.
 	 * @param player that must do this check for.
 	 * @return Direction that must be avoided. Not null if gold inSight (with a limit) and a miner is near that gold.

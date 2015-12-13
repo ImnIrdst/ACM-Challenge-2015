@@ -67,12 +67,11 @@ public class EnemiesInfo {
                     if (Consts.isMINER_OR_SHADOW(mBoard[i][j])) continue;
                     if (Consts.isSPY_OR_SHADOW(mBoard[i][j])) continue;
                     mBoard[i][j] = Consts.EMPTY;
+                } else if (mBoard[i][j] == Consts.UNSEEN && staticsInfo.mBoard[i][j] == Consts.EMPTY){  // updates unseen cells
+                    mBoard[i][j] = Consts.EMPTY;
+                } else if (mBoard[i][j] == Consts.UNSEEN && staticsInfo.mBoard[i][j] == Consts.BLOCK){  // updates unseen cells
+                    mBoard[i][j] = Consts.BLOCK; // TODO: Maybe Must Be UnCommented.
                 }
-//                } else if (mBoard[i][j] == Consts.UNSEEN && staticsInfo.mBoard[i][j] == Consts.EMPTY){  // updates unseen cells
-//                    mBoard[i][j] = Consts.EMPTY;
-//                } else if (mBoard[i][j] == Consts.UNSEEN && staticsInfo.mBoard[i][j] == Consts.BLOCK){  // updates unseen cells
-//                    mBoard[i][j] = Consts.BLOCK; // TODO: Maybe Must Be UnCommented.
-//                }
             }
         }
 	    // Update Bullet Hit Time.
@@ -246,6 +245,9 @@ public class EnemiesInfo {
 	}
 
 
+	/**
+	 * Constants for Enemies info Class.
+	 */
     public static class Consts{
         public static final int UNSEEN = 0;
         public static final int EMPTY  = 1;

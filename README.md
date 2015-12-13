@@ -54,11 +54,12 @@
 * Mark Blind Points
 
 # Todos
-22. Fix Spy Logic Code. (Doesn't Hide Correctly)
-23. Shuffle Players for random Priorities.
-24. Kill Hunter (or Player) on the Gold Strategy. (If Visible Enemies on The Gold Send Hunters).
-25. Keep Hunters Watching (Turning Around) on Gold Till One Of the Miners Get. There. (Hunter on Gold Until Ally Miner Comes Around.)
-26. if a free player nearer to a target reassign the target.
+26. Used Shuffled Edge Cells in StaticInfo update function for discovery assigning.
+27. Maybe Doing Random Forward Discovery in two stages is better.
+28. Fix Spy Logic Code. (Doesn't Hide Correctly)
+29. Kill Hunter (or Player) on the Gold Strategy. (If Visible Enemies on The Gold Send Hunters).
+30. Keep Hunters Watching (Turning Around) on Gold Till One Of the Miners Get. There. (Hunter on Gold Until Ally Miner Comes Around.)
+
 
 # Done
 00. Create Git Repository
@@ -83,3 +84,7 @@
 19. Avoid golds if miners nearby. (and you face a gold)
 20. Do Target Assigning for each Cycle. (Doesn't Work Well.)
 21. Fix The Bug With The BulletHitTime.
+22. Shuffle Players for random Priorities.
+23. If a free player nearer to a target reassign the target.
+24. Shuffle Edge Cells for Random Assigning to players.
+25. Going Forward is The Best Discovery Move.
