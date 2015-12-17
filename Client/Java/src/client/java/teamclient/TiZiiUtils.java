@@ -24,16 +24,16 @@ public class TiZiiUtils {
     // logging functionality
     static boolean needed = true;
     static boolean notNeeded = false;
-    static boolean isLoggingEnabled = true;
+    static boolean isLoggingEnabled = false;
 
-    public static void update(AlliesInfo argAlliesInfoArg){
-        alliesInfo = argAlliesInfoArg;
-        enemiesInfo = alliesInfo.enemiesInfo;
-        staticsInfo = alliesInfo.staticsInfo;
+    public static void update(TeamClientAi game){
+        alliesInfo = game.alliesInfo;
+        enemiesInfo = game.enemiesInfo;
+        staticsInfo = game.staticsInfo;
 
-        rows = staticsInfo.rows;
-        cols = staticsInfo.cols;
-        gameBoard = staticsInfo.gameBoard;
+        rows = game.getBoard().getNumberOfRows();
+        cols = game.getBoard().getNumberOfColumns();
+        gameBoard = game.getBoard();
     }
 
     /**
@@ -42,8 +42,6 @@ public class TiZiiUtils {
      * @param isClearing defines phase of the bfs.
      */
     public static void BFS(Integer itemId, TiZiiCoords itemCoords, TreeMap[][] bfsTable, boolean isClearing){
-        //staticsInfo.goldBFSCalculated.add(itemId); // TODO: null pointer Exception
-
         TiZiiCoords s = itemCoords;
         Queue<TiZiiCoords> q = new LinkedList<>();
 
@@ -56,16 +54,20 @@ public class TiZiiUtils {
             TiZiiCoords u = q.poll();
             for (Direction dir : Direction.values()){
                 TiZiiCoords v = new TiZiiCoords(u.i + dir.getDeltaRow(), u.j + dir.getDeltaCol());
-	            if (TiZiiUtils.inRange(v.i, v.j) && vis[v.i][v.j] < 0 && staticsInfo.mBoard[v.i][v.j] == StaticsInfo.Consts.EMPTY) {
+
+	            if (TiZiiUtils.inRange(v.i, v.j) && vis[v.i][v.j] < 0
+			            && staticsInfo.mBoard[v.i][v.j] != StaticsInfo.Consts.UNSEEN
+                        && staticsInfo.mBoard[v.i][v.j] != StaticsInfo.Consts.BLOCK) {
+
 		            q.add(v);
 		            vis[v.i][v.j] = vis[u.i][u.j] + 1;
+						if (!isClearing)
+							bfsTable[v.i][v.j].put(itemId,
+									new DistanceDirectionPair(vis[v.i][v.j], TiZiiUtils.getReverseDirection(dir)));
 
-		            if (!isClearing)
-			            bfsTable[v.i][v.j].put(itemId,
-					            new DistanceDirectionPair(vis[v.i][v.j],
-							            TiZiiUtils.getReverseDirection(dir))); // TODO: There Is A Bug in This. prints D Without Down Cell.
-		            else if (bfsTable[v.i][v.j].containsKey(itemId))
-			            bfsTable[v.i][v.j].remove(itemId);
+						else if (bfsTable[v.i][v.j].containsKey(itemId))
+							bfsTable[v.i][v.j].remove(itemId);
+
 	            }
             }
         }
@@ -208,8 +210,9 @@ public class TiZiiUtils {
     }
 
     public static class Consts{
-        public static final int BFS_RADIUS = 10; // TODO: Not Used.
-	    public static final int MANHATTAN_DISTANCE = Math.min(rows, cols)/2;
+        public static final int BFS_RADIUS = 10; // TODO: Not Used. (if Computations are intense Use These.)
+	    public static final int MANHATTAN_LIMIT = Math.min(rows, cols)/2;
         public static final boolean isLogginEnabled = true;
+	    public static final int HIDING_MOMENT = 15;
     }
 }

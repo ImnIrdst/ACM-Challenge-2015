@@ -1,5 +1,6 @@
 package client.java.teamclient;
 
+import client.java.teamclient.TiZiiClasses.DistanceDirectionPair;
 import client.java.teamclient.TiZiiClasses.TiZiiBullet;
 import client.java.teamclient.TiZiiClasses.TiZiiCoords;
 import com.sun.xml.internal.bind.v2.runtime.reflect.opt.Const;
@@ -21,20 +22,26 @@ import java.util.TreeSet;
 public class EnemiesInfo {
     // Class Members
     public int rows, cols;                                  // Dimensions of the mBoard
-    public int[][] mBoard;                                  // Member Board
+    public int[][] mBoard;                                  // Member Board Contains HUNTER, MINER, SPY or SHADOW.
     public TreeMap<TiZiiBullet, Integer>[][] bulletHitTime; // Table of Bullets that hits a target in a Certain Time.
 
-    public Board gameBoard;
     public StaticsInfo staticsInfo;
 	public AlliesInfo alliesInfo;
 
-	// constructor
-    public EnemiesInfo(Board gameBoard, StaticsInfo staticsInfo) {
-        this.gameBoard = gameBoard;
-	    this.staticsInfo = staticsInfo;
+	public TreeSet<TiZiiCoords> huntingTargets;                  // Targets That Must Be Hunted.
+	public TreeMap<Integer, TiZiiCoords> targetIdToCoord;        // Maps Target ids to Coords
+	public TreeMap<TiZiiCoords, Integer> huntingTargetIds;       // Hunting Target ids
+	public TreeMap<TiZiiCoords, Integer> targetAssignedToHunter; // Map Targets to Hunters.
+	public TreeMap<Integer, TiZiiCoords> hunterAssignedToTarget; // Map Hunters to Targets.
+	public TreeMap<Integer, DistanceDirectionPair>[][] huntingBFSTable;    // Table of Bullets that hits a target in a Certain Time.
 
-	    this.rows = gameBoard.getNumberOfRows();
-        this.cols = gameBoard.getNumberOfColumns();
+	// constructor
+    public EnemiesInfo(TeamClientAi game) {
+	    this.staticsInfo = game.staticsInfo;
+		this.alliesInfo = game.alliesInfo;
+
+	    this.rows = game.getBoard().getNumberOfRows();
+        this.cols = game.getBoard().getNumberOfColumns();
         this.mBoard = new int[rows][cols];
 	    this.bulletHitTime = new TreeMap[rows][cols];
 		for (int i=0 ; i<rows ; i++){
@@ -49,10 +56,12 @@ public class EnemiesInfo {
      * @param hunters list of enemy hunters
      * @param miners  list of enemy miners
      * @param spies   list of enemy spies
-     * @param bullets list of bullets in the Map
      */
-    public void updateEnemyBoard(ArrayList<Hunter> hunters, ArrayList<GoldMiner> miners,
-                                 ArrayList<Spy> spies, ArrayList<Bullet> bullets) {
+    public void updateEnemyBoard(ArrayList<Hunter> hunters, ArrayList<GoldMiner> miners, ArrayList<Spy> spies) {
+	    this.huntingTargets = new TreeSet<>();
+	    this.huntingTargetIds = new TreeMap<>();
+	    this.targetIdToCoord = new TreeMap<>();
+
         // add enemy players
         for (Hunter hunter : hunters)   setCell(hunter.getCell(), Consts.HUNTER-1);
         for (GoldMiner miner : miners)  setCell(miner.getCell(), Consts.MINER-1);
@@ -70,58 +79,146 @@ public class EnemiesInfo {
                 } else if (mBoard[i][j] == Consts.UNSEEN && staticsInfo.mBoard[i][j] == Consts.EMPTY){  // updates unseen cells
                     mBoard[i][j] = Consts.EMPTY;
                 } else if (mBoard[i][j] == Consts.UNSEEN && staticsInfo.mBoard[i][j] == Consts.BLOCK){  // updates unseen cells
-                    mBoard[i][j] = Consts.BLOCK; // TODO: Maybe Must Be UnCommented.
+                    mBoard[i][j] = Consts.BLOCK;
                 }
             }
         }
-	    // Update Bullet Hit Time.
-	    for (int i=0 ; i<rows ; i++){
-		    for(int j=0 ; j<cols ; j++){
-			    ArrayList<TiZiiBullet> mustBeRemoved = new ArrayList<>();
-			    for (TiZiiBullet tBullet : bulletHitTime[i][j].keySet()){
-				    Integer time = bulletHitTime[i][j].get(tBullet);
-				    time--;  bulletHitTime[i][j].put(tBullet, time);
-				    if (time < 0) mustBeRemoved.add(tBullet);
-			    }
-			    for (TiZiiBullet tBullet : mustBeRemoved){
-				    bulletHitTime[i][j].remove(tBullet);
-			    }
-		    }
-	    }
-	    // Calculate Bullet Hit Time.
-	    for (Bullet bullet : bullets){
-		    TiZiiBullet tBullet = new TiZiiBullet(bullet);
-		    TiZiiCoords coords = new TiZiiCoords(tBullet.cell);
-
-		    int time = 0;
-		    while (TiZiiUtils.inRange(coords.i, coords.j)){
-			    bulletHitTime[coords.i][coords.j].put(tBullet, time);
-			    coords = coords.adjacent(tBullet.direction);
-			    if (TiZiiUtils.inRange(coords.i, coords.j))
-				    bulletHitTime[coords.i][coords.j].put(tBullet, time);
-			    coords = coords.adjacent(tBullet.direction); time++;
-		    }
-	    }
-	    // add the targets with hitTime == 1 to Blocked Cells.
-	    TreeSet<TiZiiBullet> tBullets= new TreeSet<>();
-	    for (int i=0 ; i<rows ; i++) {
-		    for (int j = 0; j < cols; j++) {
-			    for (TiZiiBullet bullet : bulletHitTime[i][j].keySet()) {
-				    tBullets.add(bullet);
-			    }
-		    }
-	    }
-	    for (TiZiiBullet bullet: tBullets) {
-		    for (int i=0 ; i<rows ; i++){
-			    for (int j=0 ; j<cols ; j++){
-				    Integer hitTime = bulletHitTime[i][j].get(bullet);
-				    if ( hitTime != null && hitTime <= 2){
-						alliesInfo.blockedCoords.add(new TiZiiCoords(i, j));
-				    }
-			    }
-		    }
-	    }
     }
+
+	/**
+	 * updating bullet hit times.
+	 * @param bullets contains all the bullets that's visible in the map.
+	 */
+	void updateBulletHitTimes(ArrayList<Bullet> bullets) {
+		// Update Bullet Hit Time.
+		for (int i=0 ; i<rows ; i++){
+			for(int j=0 ; j<cols ; j++){
+				ArrayList<TiZiiBullet> mustBeRemoved = new ArrayList<>();
+				for (TiZiiBullet tBullet : bulletHitTime[i][j].keySet()){
+					Integer time = bulletHitTime[i][j].get(tBullet);
+					time--;  bulletHitTime[i][j].put(tBullet, time);
+					if (time < 0) mustBeRemoved.add(tBullet);
+				}
+				for (TiZiiBullet tBullet : mustBeRemoved){
+					bulletHitTime[i][j].remove(tBullet);
+				}
+			}
+		}
+		// Calculate Actual Bullets Hit Time.
+		for (Bullet bullet : bullets){
+			TiZiiBullet tBullet = new TiZiiBullet(bullet);
+			TiZiiCoords coords = new TiZiiCoords(tBullet.cell);
+
+			int time = 0;
+			while (TiZiiUtils.inRange(coords.i, coords.j)){
+				bulletHitTime[coords.i][coords.j].put(tBullet, time);
+				coords = coords.adjacent(tBullet.direction);
+				if (TiZiiUtils.inRange(coords.i, coords.j))
+					bulletHitTime[coords.i][coords.j].put(tBullet, time);
+				coords = coords.adjacent(tBullet.direction); time++;
+			}
+		}
+	}
+
+
+	/**
+	 * Adding some coords to blocked coords.
+	 * @param enemyHunters . we must add enemy hunters view to the blocked coords.s
+	 */
+	void updateBlockedCells(ArrayList<Hunter> enemyHunters){
+		// add the targets with hitTime == 1 to Blocked Cells.
+		TreeSet<TiZiiBullet> tBullets= new TreeSet<>();
+		for (int i=0 ; i<rows ; i++) {
+			for (int j = 0; j < cols; j++) {
+				for (TiZiiBullet bullet : bulletHitTime[i][j].keySet()) {
+					tBullets.add(bullet);
+				}
+			}
+		}
+		for (TiZiiBullet bullet: tBullets) {
+			for (int i=0 ; i<rows ; i++){
+				for (int j=0 ; j<cols ; j++){
+					Integer hitTime = bulletHitTime[i][j].get(bullet);
+					if ( hitTime != null && hitTime <= 2){
+						alliesInfo.blockedCoords.add(new TiZiiCoords(i, j));
+					}
+				}
+			}
+		}
+
+		// add view of hunters to the blocked Coords.
+		for (Hunter hunter : enemyHunters){
+			if (!hunter.canAttack()) continue;
+			for (Cell cell : hunter.getAheadCells()){
+				alliesInfo.blockedCoords.add(new TiZiiCoords(cell));
+			}
+		}
+	}
+
+	public void updateHuntingTargets(ArrayList<Hunter> hunters){
+		if (huntingTargets.isEmpty()) return;
+
+		this.hunterAssignedToTarget = new TreeMap<>();
+		this.targetAssignedToHunter = new TreeMap<>();
+		this.huntingBFSTable = new TreeMap[rows][cols];
+		for (int i=0 ; i<rows ; i++){
+			for (int j=0 ; j<cols ; j++){
+				this.huntingBFSTable[i][j] = new TreeMap<>();
+			}
+		}
+
+		// assign hunting targets to hunters.
+		for (TiZiiCoords targetCoords : huntingTargets){
+			// Online BFS.
+			Integer targetId = huntingTargetIds.get(targetCoords);
+
+			if (targetId == null) continue;
+
+			TiZiiUtils.BFS(targetId, targetCoords, huntingBFSTable, false);
+
+			// assigning operation
+			Integer minDist = (int)1e8;
+			Integer assignedHunter = null;
+			for (Hunter hunter : hunters){
+				if (!alliesInfo.idlePlayers.contains(hunter.getId())) continue;
+
+				TiZiiCoords minerCoords = new TiZiiCoords(hunter.getCell());
+				DistanceDirectionPair pair = huntingBFSTable[minerCoords.i][minerCoords.j].get(targetId);
+				if (pair != null && pair.distance < minDist
+						&& !hunterAssignedToTarget.containsKey(hunter.getId())){
+					minDist = pair.distance; assignedHunter = hunter.getId();
+				}
+			}
+			if (assignedHunter != null){
+				if (TiZiiUtils.isLoggingEnabled && TiZiiUtils.needed){
+					System.out.println("Hunter " + assignedHunter + " is assigned to " + targetCoords);
+				}
+				hunterAssignedToTarget.put(assignedHunter, targetCoords);
+				targetAssignedToHunter.put(targetCoords, assignedHunter);
+
+				alliesInfo.idlePlayers.remove(assignedHunter);
+			}
+		}
+	}
+
+	public void addToHuntingTargets(TiZiiCoords coords){
+		huntingTargets.add(coords);
+		for(int id = 0; true; id++){
+			if (!targetIdToCoord.containsKey(id)){
+				targetIdToCoord.put(id, coords);
+				huntingTargetIds.put(coords, id);
+				return;
+			}
+		}
+	}
+
+	public void removeFromHuntingTargets(TiZiiCoords coords){
+		huntingTargets.remove(coords);
+		Integer id = huntingTargetIds.get(coords);
+		if (id == null) return;
+		targetIdToCoord.remove(id);
+		huntingTargetIds.remove(coords);
+	}
 
 	/**
 	 * @param player : player must be checked
@@ -244,6 +341,15 @@ public class EnemiesInfo {
 		return cnt;
 	}
 
+	public boolean isEnemyAroundCell(TiZiiCoords coords, int radius) {
+		for (int i=coords.i - radius ; i <= coords.i + radius ; i++) {
+			for (int j = coords.j - radius; j <= coords.j + radius; j++) {
+				if (TiZiiUtils.inRange(i,j) && mBoard[i][j] >= Consts.PLAYER) return true;
+			}
+		}
+		return false;
+	}
+
 
 	/**
 	 * Constants for Enemies info Class.
@@ -264,7 +370,7 @@ public class EnemiesInfo {
         public static boolean isMINER_SHADOW(int x){ return x > MINER && x< MINER + SHADOW_DUR; }
         public static boolean isSPY_SHADOW(int x){ return x > SPY && x< SPY + SHADOW_DUR; }
 
-        public static final int SHADOW_DUR = 2;      // Duration that shadow lasts.
+        public static final int SHADOW_DUR = 5;      // Duration that shadow lasts.
         public static final int DANGER_RADIUS = 3;   // if a enemy is nearer than this to player, player is in danger
     }
 
