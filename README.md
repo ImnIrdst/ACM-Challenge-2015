@@ -7,8 +7,8 @@
 * [MIT Battle Code Course](http://ocw.mit.edu/courses/electrical-engineering-and-computer-science/6-370-the-battlecode-programming-competition-january-iap-2013/)
 
 # Todos
-31. Check The BFS Radius. (If Computation Time is Important.)
-32. Keep Hunters Watching (Turning Around) on Gold Till One Of the Miners Get. There. (Hunter on Gold Until Ally Miner Comes Around). Easy To Code.
+33. Check The BFS Radius. (If Computation Time is Important.)
+34. Keep Hunters Watching (Turning Around) on Gold Till One Of the Miners Get. There. (Hunter on Gold Until Ally Miner Comes Around). Easy To Code.
 
 
 # Done
@@ -43,7 +43,8 @@
 28. Fix Spy Logic Code. (Doesn't Hide Correctly)
 29. Kill Hunter (or Player) on the Gold Strategy. (If Visible Enemies on The Gold Send Hunters). This Becomes Easy Due to Dynamic assigning. Use Gold Assigning Technique.
 30. Check Todos in the Code.
-
+31. add bullet shadows.
+32. test with all three maps.
 
 # Ideas
 

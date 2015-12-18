@@ -64,14 +64,6 @@ public class TeamClientAi extends ClientGame {
 	    Collections.shuffle(spies);
 
 
-//	    added = new TreeSet<>();
-//	    ArrayList<Player> players = new ArrayList<>();
-//	    for (Player player : getMyPlayers()) {
-//		    if (!added.contains(player.getId())){
-//			    players.add(player); added.add(player.getId());
-//		    }
-//	    }
-//	    Collections.shuffle(players);
 
         // updating.
 	    alliesInfo.updateAlliesInfo(getMyPlayers());
@@ -107,7 +99,7 @@ public class TeamClientAi extends ClientGame {
 	    if (TiZiiUtils.isLoggingEnabled && TiZiiUtils.needed)
 	        TiZiiUtils.printBoard(staticsInfo.discoveredAreas, "Discovered Areas.");
 
-	    if (TiZiiUtils.isLoggingEnabled && TiZiiUtils.notNeeded)
+	    if (TiZiiUtils.isLoggingEnabled && TiZiiUtils.needed)
 		    TiZiiUtils.printBulletsHitTime("Bullets Hit Time");
 
 
@@ -120,10 +112,19 @@ public class TeamClientAi extends ClientGame {
 	    // log targets.
 	    if (TiZiiUtils.isLoggingEnabled && TiZiiUtils.needed) {
 		    for (Hunter hunter : hunters) {
+
+			    try {
+				    enemiesInfo.hunterAssignedToTarget.containsKey(hunter.getId());
+			    } catch (Exception e){
+				    for (int i=0 ; i<1000 ; i++)
+					    i+=2;
+				    e.printStackTrace();
+			    }
+
 			    System.out.print("Hunter " + new TiZiiCoords(hunter.getCell()) + ":\t\t");
 			    if (staticsInfo.assignedPlayerToDiscoveryTarget.containsKey(hunter.getId())) {
 				    System.out.println(staticsInfo.assignedPlayerToDiscoveryTarget.get(hunter.getId()) + " Discovery");
-			    }else if (alliesInfo.assignedPlayerToGold.containsKey(hunter.getId())) {
+			    }else if (enemiesInfo.hunterAssignedToTarget.containsKey(hunter.getId())) {
 				    System.out.println(enemiesInfo.hunterAssignedToTarget.get(hunter.getId()) + " Hunt");
 			    } else System.out.println("Not Assigned");
 		    }
@@ -147,10 +148,11 @@ public class TeamClientAi extends ClientGame {
 	    // log score.
 	    if (TiZiiUtils.isLoggingEnabled && TiZiiUtils.needed){
 		    System.out.println("Cycle: " + getCycleNumber() + ", TiZii: " + getMyScore() + ", Opponent: " + getOpponentScore());
+		    long finishTime = System.currentTimeMillis(); // First Cycle 43 ms, others 3 ms
+		    System.out.println("Time in Millis: " + (finishTime - startTime));
 	    }
 
-	    long finishTime = System.currentTimeMillis(); // First Cycle 43 ms, others 3 ms
-	    System.out.println("Time in Millis: " + (finishTime - startTime) + "\n");
+
     }
 
     /**
@@ -323,7 +325,7 @@ public class TeamClientAi extends ClientGame {
 			    for (Direction direction : Direction.values()){
 				    if (canGo(player, direction) && tBullet.direction != direction
 						    && tBullet.direction != TiZiiUtils.getReverseDirection(direction)) {
-					    move(player); return;
+					    moveOrRotate(player, direction); return;
 				    }
 			    }
 			    randomMove(player);
@@ -344,39 +346,30 @@ public class TeamClientAi extends ClientGame {
 		}
 
 		/**
-		 * You, me, or nobody is gonna hit as hard as life.
+		 * Let me tell you something you already know. The world ain't all sunshine and rainbows.
+		 * It's a very mean and nasty place and I don't care how tough you are it will beat you to
+		 * your knees and keep you there permanently if you let it. You, me, or nobody is gonna hit as hard as life.
 		 * But it ain't about how hard ya hit. It's about how hard you can get hit and keep moving forward.
-		 * How much you can take and keep moving forward. That's how winning is done!” ― Rocky Balboa
+		 * How much you can take and keep moving forward. That's how winning is done! ― Rocky Balboa
 		 */
 
 		TiZiiCoords u = new TiZiiCoords(player.getCell());
 		TiZiiCoords assignedTarget = staticsInfo.assignedPlayerToDiscoveryTarget.get(player.getId());
+
 		if (assignedTarget != null ) {
+
 			int id = staticsInfo.discoveryCoordsToId.get(assignedTarget);
 			DistanceDirectionPair pair = staticsInfo.discoveryBFSTable[u.i][u.j].get(id);
+
 			if (pair != null) moveOrRotate(player, pair.direction);
 			else randomMove(player);
+
 		} else {
 				DirectionScorePair[] scorePair = alliesInfo.getDiscoveryMovementScores(player);
 				Arrays.sort(scorePair);
 				scoreMove(player, scorePair);
 		}
 	}
-
-	/**
-	 * Because Clearing Discovered Areas Function Does'nt Work Correctly I Added This to Remove Discovered Targets.
-	 * @param assignedTarget Target That must be validated.
-	 * @return true if target is Already Discovered.
-	 */
-//	private boolean isTargetValid(Player player, TiZiiCoords assignedTarget){
-//		TiZiiCoords playerCoords = new TiZiiCoords(player.getCell());
-//		Integer targetId = staticsInfo.discoveryCoordsToId.get(assignedTarget);
-//		if ((targetId == null || !staticsInfo.discoveryBFSTable[playerCoords.i][playerCoords.j].containsKey(targetId))
-//				&& staticsInfo.discoveredAreas[assignedTarget.i][assignedTarget.j] != StaticsInfo.Consts.UNSEEN){
-//			staticsInfo.clearDiscoveryTarget(assignedTarget); return false;
-//		}
-//		return true;
-//	}
 
 	/**
 	 * Move Player To a Direction With Highest Score. (Includes Some Randomness).
@@ -511,3 +504,31 @@ public class TeamClientAi extends ClientGame {
 		} else randomMove(player);
 	}
 }
+
+
+// Trash Can
+
+
+//	    added = new TreeSet<>();
+//	    ArrayList<Player> players = new ArrayList<>();
+//	    for (Player player : getMyPlayers()) {
+//		    if (!added.contains(player.getId())){
+//			    players.add(player); added.add(player.getId());
+//		    }
+//	    }
+//	    Collections.shuffle(players);
+
+/**
+ * Because Clearing Discovered Areas Function Does'nt Work Correctly I Added This to Remove Discovered Targets.
+ * @param assignedTarget Target That must be validated.
+ * @return true if target is Already Discovered.
+ */
+//	private boolean isTargetValid(Player player, TiZiiCoords assignedTarget){
+//		TiZiiCoords playerCoords = new TiZiiCoords(player.getCell());
+//		Integer targetId = staticsInfo.discoveryCoordsToId.get(assignedTarget);
+//		if ((targetId == null || !staticsInfo.discoveryBFSTable[playerCoords.i][playerCoords.j].containsKey(targetId))
+//				&& staticsInfo.discoveredAreas[assignedTarget.i][assignedTarget.j] != StaticsInfo.Consts.UNSEEN){
+//			staticsInfo.clearDiscoveryTarget(assignedTarget); return false;
+//		}
+//		return true;
+//	}

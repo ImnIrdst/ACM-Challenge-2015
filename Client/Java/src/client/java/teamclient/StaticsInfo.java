@@ -318,34 +318,8 @@ public class StaticsInfo {
 	 * @return true if this cell is contain gold.
 	 */
 	public boolean isGoldCell(Cell cell) {
-		return mBoard[cell.getRowNumber()][cell.getColumnNumber()] == Consts.GOLD;
+		return cell != null && mBoard[cell.getRowNumber()][cell.getColumnNumber()] == Consts.GOLD;
 	}
-
-	/**
-	 * clearing a discovery target.
-	 * @param target that must be cleared.
-	 */
-//	public void clearDiscoveryTarget(TiZiiCoords target) {
-//		Integer targetId = discoveryCoordsToId.get(target);   // Clearing BFS and All Assignments.
-//
-//		if (targetId != null)
-//			discoveryIdToCoords.remove(targetId);
-//
-//		if (discoveryCoordsToId.containsKey(target))
-//			discoveryCoordsToId.remove(target);
-//
-//		Integer playerId = assignedDiscoveryTargetToPlayer.get(target);
-//
-//		if (assignedDiscoveryTargetToPlayer.containsKey(target))
-//			assignedDiscoveryTargetToPlayer.remove(target);
-//
-//		if (playerId != null)
-//			assignedPlayerToDiscoveryTarget.remove(playerId);
-//
-//		alliesInfo.idlePlayers.add(playerId);
-//
-//		if (targetId != null )TiZiiUtils.BFS(targetId, target, discoveryBFSTable, true);
-//	}
 
 	/**
 	 * Get The Current Map Edge Cells. (Undiscovered cells adjacent to discovered cells)
@@ -420,3 +394,32 @@ public class StaticsInfo {
         return sb.toString();
     }
 }
+
+
+// Trash Can
+
+/**
+ * clearing a discovery target.
+ * @param target that must be cleared.
+ */
+//	public void clearDiscoveryTarget(TiZiiCoords target) {
+//		Integer targetId = discoveryCoordsToId.get(target);   // Clearing BFS and All Assignments.
+//
+//		if (targetId != null)
+//			discoveryIdToCoords.remove(targetId);
+//
+//		if (discoveryCoordsToId.containsKey(target))
+//			discoveryCoordsToId.remove(target);
+//
+//		Integer playerId = assignedDiscoveryTargetToPlayer.get(target);
+//
+//		if (assignedDiscoveryTargetToPlayer.containsKey(target))
+//			assignedDiscoveryTargetToPlayer.remove(target);
+//
+//		if (playerId != null)
+//			assignedPlayerToDiscoveryTarget.remove(playerId);
+//
+//		alliesInfo.idlePlayers.add(playerId);
+//
+//		if (targetId != null )TiZiiUtils.BFS(targetId, target, discoveryBFSTable, true);
+//	}

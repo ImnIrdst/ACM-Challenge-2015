@@ -117,6 +117,18 @@ public class EnemiesInfo {
 					bulletHitTime[coords.i][coords.j].put(tBullet, time);
 				coords = coords.adjacent(tBullet.direction); time++;
 			}
+
+			TiZiiBullet shadowBullet = new TiZiiBullet(bullet);
+			coords = new TiZiiCoords(tBullet.cell);
+
+			time = 1; shadowBullet.id *= 100;
+			while (TiZiiUtils.inRange(coords.i, coords.j)){
+				bulletHitTime[coords.i][coords.j].put(shadowBullet, time);
+				coords = coords.adjacent(shadowBullet.direction);
+				if (TiZiiUtils.inRange(coords.i, coords.j))
+					bulletHitTime[coords.i][coords.j].put(shadowBullet, time);
+				coords = coords.adjacent(shadowBullet.direction); time++;
+			}
 		}
 	}
 
@@ -156,7 +168,7 @@ public class EnemiesInfo {
 	}
 
 	public void updateHuntingTargets(ArrayList<Hunter> hunters){
-		if (huntingTargets.isEmpty()) return;
+
 
 		this.hunterAssignedToTarget = new TreeMap<>();
 		this.targetAssignedToHunter = new TreeMap<>();
@@ -166,6 +178,7 @@ public class EnemiesInfo {
 				this.huntingBFSTable[i][j] = new TreeMap<>();
 			}
 		}
+		if (huntingTargets.isEmpty()) return;
 
 		// assign hunting targets to hunters.
 		for (TiZiiCoords targetCoords : huntingTargets){
@@ -231,8 +244,6 @@ public class EnemiesInfo {
 		for (TiZiiBullet tBullet : bulletHitTimeIJ.keySet()){
 			Integer time = bulletHitTimeIJ.get(tBullet);
 			if (time <= 2 && TiZiiUtils.cellToCellDirection(tBullet.cell, player.getCell()) == tBullet.direction){
-				System.out.println();
-				System.out.println(TiZiiUtils.cellToCellDirection(tBullet.cell, player.getCell()));
 				return true;
 			}
 		}

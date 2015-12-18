@@ -10,7 +10,7 @@ public class TiZiiTest {
 
 	public static void testTiZiaUtilsDirections(){
 		for (Direction direction : Direction.values()){
-			//System.out.println(direction == TiZiiUtils.getReverseDirection(TiZiiUtils.getReverseDirection(direction)));
+			// System.out.println(direction == TiZiiUtils.getReverseDirection(TiZiiUtils.getReverseDirection(direction)));
 			System.out.println("Cur Direction: " + direction);
 			System.out.println("Rev Direction: " + TiZiiUtils.getReverseDirection(direction));
 			System.out.println("PosNormal Direction: " + TiZiiUtils.getReversePositiveNormalDirection(direction));

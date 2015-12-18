@@ -213,6 +213,6 @@ public class TiZiiUtils {
         public static final int BFS_RADIUS = 10; // TODO: Not Used. (if Computations are intense Use These.)
 	    public static final int MANHATTAN_LIMIT = Math.min(rows, cols)/2;
         public static final boolean isLogginEnabled = true;
-	    public static final int HIDING_MOMENT = 15;
+	    public static final int HIDING_MOMENT = 12;
     }
 }
