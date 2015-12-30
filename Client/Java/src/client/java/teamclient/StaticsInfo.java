@@ -126,7 +126,7 @@ public class StaticsInfo {
 				continue;
 
 			// Check if Enemy Hunter Around the gold.
-			if (enemiesInfo.isEnemyAroundCell(goldCoords, 1)) {
+			if (enemiesInfo.isEnemyAroundCell(goldCoords, 0)) {
 				enemiesInfo.addToHuntingTargets(goldCoords);
 				continue;
 			}
@@ -177,6 +177,7 @@ public class StaticsInfo {
 	    // add discovered areas that doesn't contains gold.
 	    for (Player player : players) {
 		    for (Cell cell : player.getAroundCells()) {
+			    if (cell == null) continue;
 			    TiZiiCoords coords = new TiZiiCoords(cell);
 				if (discoveredAreas[coords.i][coords.j] == Consts.UNSEEN) {
 					if (cell.getType().isBlock())
@@ -212,6 +213,37 @@ public class StaticsInfo {
 			for(int j=0 ; j<cols ; j++){
 				this.discoveryBFSTable[i][j] = new TreeMap<>();
 			}
+		}
+
+		ArrayList<TiZiiCoords> mustBeRemoved = new ArrayList<>();
+		for (TiZiiCoords target : validDiscoveryTargets){
+			if (enemiesInfo.isEnemyMinerAroundCell(target, 1)) mustBeRemoved.add(target);
+		}
+
+		for (int manhattanLimit = 1 ;
+		     manhattanLimit<=Math.max(rows, cols)
+				     && validDiscoveryTargets.size() > Math.max(0,alliesInfo.idlePlayers.size() - 2) ;
+		     manhattanLimit++ ) {
+
+			for (TiZiiCoords thisCoords : validDiscoveryTargets){
+
+				boolean isHigherThanManhattan = true;
+				for (TiZiiCoords coords : validDiscoveryTargets ){
+					if (thisCoords.compareTo(coords) != 0) continue;
+					if (TiZiiUtils.manhattanDistance(thisCoords, coords) < manhattanLimit){
+						isHigherThanManhattan = false;
+					}
+				}
+
+				if (isHigherThanManhattan){
+					// try some Randomness
+					mustBeRemoved.add(thisCoords);
+				}
+			}
+		}
+
+		for (TiZiiCoords temp : mustBeRemoved){
+			removeFromValidDiscoveryCoords(temp);
 		}
 
 		for (int manhattanLimit = Math.max(rows, cols) ;
@@ -299,7 +331,6 @@ public class StaticsInfo {
 		validDiscoveryTargets.remove(coords);
 		Integer id = discoveryCoordsToId.get(coords);
 		if (id == null) return;
-		discoveryCoordsToId.remove(coords, id);
 		discoveryCoordsToId.remove(coords);
 	}
 
@@ -339,6 +370,7 @@ public class StaticsInfo {
 				TiZiiCoords thisCoords = new TiZiiCoords(i, j);
 				boolean isEdgeCell = false;
 				for (Direction dir : Direction.values()){
+					if (dir == Direction.NONE) continue;
 					int ii = i + dir.getDeltaRow();
 					int jj = j + dir.getDeltaCol();
 					if (!TiZiiUtils.inRange(ii, jj)) continue;

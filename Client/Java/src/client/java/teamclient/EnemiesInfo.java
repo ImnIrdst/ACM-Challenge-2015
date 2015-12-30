@@ -161,8 +161,9 @@ public class EnemiesInfo {
 		// add view of hunters to the blocked Coords.
 		for (Hunter hunter : enemyHunters){
 			if (!hunter.canAttack()) continue;
-			for (Cell cell : hunter.getAheadCells()){
-				alliesInfo.blockedCoords.add(new TiZiiCoords(cell));
+			TiZiiCoords coords = new TiZiiCoords(hunter.getCell());
+			for (;!TiZiiUtils.inRange(coords.i, coords.j) ; coords = coords.adjacent(hunter.getMovementDirection())){
+				alliesInfo.blockedCoords.add(coords);
 			}
 		}
 	}
@@ -243,7 +244,7 @@ public class EnemiesInfo {
 
 		for (TiZiiBullet tBullet : bulletHitTimeIJ.keySet()){
 			Integer time = bulletHitTimeIJ.get(tBullet);
-			if (time <= 2 && TiZiiUtils.cellToCellDirection(tBullet.cell, player.getCell()) == tBullet.direction){
+			if (time <= 2){  // && TiZiiUtils.cellToCellDirection(tBullet.cell, player.getCell()) == tBullet.direction
 				return true;
 			}
 		}
@@ -361,6 +362,15 @@ public class EnemiesInfo {
 		return false;
 	}
 
+	public boolean isEnemyMinerAroundCell(TiZiiCoords coords, int radius) {
+		for (int i=coords.i - radius ; i <= coords.i + radius ; i++) {
+			for (int j = coords.j - radius; j <= coords.j + radius; j++) {
+				if (TiZiiUtils.inRange(i,j) && Consts.isMINER_OR_SHADOW(mBoard[i][j])) return true;
+			}
+		}
+		return false;
+	}
+
 
 	/**
 	 * Constants for Enemies info Class.
@@ -375,13 +385,13 @@ public class EnemiesInfo {
         public static final int SPY    = 50;
 
         public static boolean isHUNTER_OR_SHADOW(int x){ return x >= HUNTER && x< HUNTER + SHADOW_DUR; }
-        public static boolean isMINER_OR_SHADOW(int x){ return x >= MINER && x< MINER + SHADOW_DUR; }
-        public static boolean isSPY_OR_SHADOW(int x){ return x >= SPY && x< SPY + SHADOW_DUR; }
-        public static boolean isHUNTER_SHADOW(int x){ return x > HUNTER && x< HUNTER + SHADOW_DUR; }
-        public static boolean isMINER_SHADOW(int x){ return x > MINER && x< MINER + SHADOW_DUR; }
-        public static boolean isSPY_SHADOW(int x){ return x > SPY && x< SPY + SHADOW_DUR; }
+        public static boolean isMINER_OR_SHADOW(int x){ return x >= MINER && x < MINER + SHADOW_DUR; }
+        public static boolean isSPY_OR_SHADOW(int x){ return x >= SPY && x < SPY + SHADOW_DUR; }
+        public static boolean isHUNTER_SHADOW(int x){ return x > HUNTER && x < HUNTER + SHADOW_DUR; }
+        public static boolean isMINER_SHADOW(int x){ return x > MINER && x < MINER + SHADOW_DUR; }
+        public static boolean isSPY_SHADOW(int x){ return x > SPY && x < SPY + SHADOW_DUR; }
 
-        public static final int SHADOW_DUR = 5;      // Duration that shadow lasts.
+        public static final int SHADOW_DUR = 3;      // Duration that shadow lasts.
         public static final int DANGER_RADIUS = 3;   // if a enemy is nearer than this to player, player is in danger
     }
 
