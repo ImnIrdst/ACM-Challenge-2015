@@ -30,7 +30,9 @@ public class AlliesInfo {
     public TreeSet<TiZiiCoords> blockedCoords;                      // for avoiding collisions and my Bullets.
 	public TreeSet<TiZiiCoords> nextPositions;                      // for detecting collisions.
     public TreeSet<TiZiiCoords> curAroundCells;                     // for removing golds
-	public TreeSet<Integer> collidedPlayer;                         // for avoiding collisions
+    public TreeSet<Integer> curRotatedPlayers;
+	public TreeSet<Integer> prevRotatedPlayers;
+	// public TreeMap<Integer, StepsInDirection> collidedPlayer;       // for avoiding collisions
 	public TreeSet<Integer> idlePlayers;
     public TreeMap<Integer, Integer> hunterBurstFire;               // Maps Hunter Id to A Number ( if greater than BURST_QTY fire else don't shoot).
 
@@ -40,9 +42,11 @@ public class AlliesInfo {
     public AlliesInfo(TeamClientAi game) {
         this.enemiesInfo = game.enemiesInfo;
         this.staticsInfo = game.staticsInfo;
+        this.curRotatedPlayers = new TreeSet<>();
+		this.prevRotatedPlayers = new TreeSet<>();
 
         this.prevDirections = new HashMap<>();
-		this.collidedPlayer = new TreeSet<>();
+		// this.collidedPlayer = new TreeMap<>();
 	    this.hunterBurstFire = new TreeMap<>();
 
 	    this.rows = game.getBoard().getNumberOfRows();
@@ -54,6 +58,8 @@ public class AlliesInfo {
      * updated sum members of the class
      */
     public void updateAlliesInfo(ArrayList<Player> myPlayers){
+	    prevRotatedPlayers = curRotatedPlayers;
+	    this.curRotatedPlayers = new TreeSet<>();
         this.blockedCoords  = new TreeSet<>();
         this.curAroundCells = new TreeSet<>();
 	    this.nextPositions  = new TreeSet<>();
@@ -63,6 +69,7 @@ public class AlliesInfo {
 
 	        TiZiiCoords coords = new TiZiiCoords(player.getCell());
             for (Cell cell : player.getCell().getAroundCells()){
+                if (cell == null) continue;
                 curAroundCells.add(new TiZiiCoords(cell));
             }
 
@@ -183,6 +190,7 @@ public class AlliesInfo {
 	 */
 	public boolean noAlliesInsight(Hunter hunter) {
 		for (Cell cell : hunter.getAheadCells()){
+            if (cell == null) continue;
 			Player playerInside = cell.getPlayerInside();
 			if (playerInside != null && playerInside.getTeam().getId() == hunter.getTeam().getId()) return false;
 		}
